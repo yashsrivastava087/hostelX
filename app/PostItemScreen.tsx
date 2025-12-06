@@ -1,87 +1,120 @@
-    // app/PostItemScreen.tsx
-import { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
-import { collection, addDoc } from 'firebase/firestore';
-import { db, auth } from '../firebaseConfig'; // Import db and auth
+import {
+  addDoc,
+  collection,
+  doc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
+import { useState } from "react";
+import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
+import { auth, db } from "../firebaseConfig";
 
-export default function PostItemScreen({ navigation }: any) {
-  const [title, setTitle] = useState('');
-  const [desc, setDesc] = useState('');
-  const [price, setPrice] = useState('');
-  const [type, setType] = useState('need'); // 'need' or 'sell'
+export default function PostItemScreen({ route, navigation }: any) {
+  const editingPost = route?.params?.post;
 
-  const handlePost = async () => {
-    if (!title || !desc) {
-      Alert.alert("Error", "Please fill in all fields");
+  const [type, setType] = useState(editingPost?.type ?? "need");
+  const [title, setTitle] = useState(editingPost?.title ?? "");
+  const [description, setDescription] = useState(
+    editingPost?.description ?? ""
+  );
+  const [price, setPrice] = useState(editingPost?.price ?? "");
+
+  const handleSubmit = async () => {
+    if (!title || !description) {
+      Alert.alert("Missing fields", "Please fill title and description");
       return;
     }
 
     try {
-      // Add a new document with a generated ID to "posts" collection
-      await addDoc(collection(db, "posts"), {
-        title: title,
-        description: desc,
-        price: price,
-        type: type, // 'need' (Borrow/Need) or 'sell' (Sell/Lend)
-        userId: auth.currentUser?.uid,
-        userEmail: auth.currentUser?.email,
-        createdAt: new Date().toISOString(),
-      });
-
-      Alert.alert("Success", "Item posted!");
-      navigation.goBack(); // Go back to Home
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
+      if (editingPost) {
+        await updateDoc(doc(db, "posts", editingPost.id), {
+          type,
+          title,
+          description,
+          price,
+        });
+        Alert.alert("Updated", "Post updated successfully");
+      } else {
+        await addDoc(collection(db, "posts"), {
+          type,
+          title,
+          description,
+          price,
+          userId: auth.currentUser?.uid,
+          userEmail: auth.currentUser?.email,
+          createdAt: serverTimestamp(),
+        });
+        Alert.alert("Posted", "Your request has been posted");
+      }
+      navigation.goBack();
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Post a Request</Text>
-      
-      <View style={styles.typeContainer}>
-        <Button 
-          title="I NEED something" 
-          color={type === 'need' ? '#007AFF' : '#ccc'} 
-          onPress={() => setType('need')} 
-        />
-        <View style={{width: 10}} />
-        <Button 
-          title="I'm SELLING/LENDING" 
-          color={type === 'sell' ? '#007AFF' : '#ccc'} 
-          onPress={() => setType('sell')} 
-        />
+      <Text style={styles.title}>
+        {editingPost ? "Edit Post" : "Post New Request"}
+      </Text>
+
+      {/* very simple type toggle */}
+
+      <View style={{ flexDirection: "row", marginBottom: 10 }}>
+        <View style={{ flex: 1, marginRight: 5 }}>
+          <Button
+            title={type === "need" ? "✓ Need" : "Need"}
+            onPress={() => setType("need")}
+            color={type === "need" ? "#007AFF" : "#999"}
+          />
+        </View>
+        <View style={{ flex: 1, marginLeft: 5 }}>
+          <Button
+            title={type === "sell" ? "✓ Sell" : "Sell"}
+            onPress={() => setType("sell")}
+            color={type === "sell" ? "#007AFF" : "#999"}
+          />
+        </View>
       </View>
 
-      <TextInput 
-        placeholder="Item Name (e.g. Maggi, Blue Pen)" 
-        style={styles.input} 
+      <TextInput
+        placeholder="Title"
         value={title}
         onChangeText={setTitle}
+        style={styles.input}
       />
-      
-      <TextInput 
-        placeholder="Description (e.g. Urgent, Block A Room 101)" 
-        style={styles.input} 
-        value={desc}
-        onChangeText={setDesc}
+      <TextInput
+        placeholder="Description"
+        value={description}
+        onChangeText={setDescription}
+        style={[styles.input, { height: 80 }]}
+        multiline
       />
-
-      <TextInput 
-        placeholder="Price (or 'Free')" 
-        style={styles.input} 
+      <TextInput
+        placeholder="Price (optional)"
         value={price}
         onChangeText={setPrice}
+        style={styles.input}
+        keyboardType="numeric"
       />
 
-      <Button title="Post Item" onPress={handlePost} />
+      <Button
+        title={editingPost ? "Save Changes" : "Post Item"}
+        onPress={handleSubmit}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  input: { borderWidth: 1, borderColor: '#ddd', padding: 15, borderRadius: 10, marginBottom: 15 },
-  typeContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 20 },
+  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+  title: { fontSize: 22, fontWeight: "bold", marginBottom: 15 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+    backgroundColor: "#f9f9f9",
+  },
 });
