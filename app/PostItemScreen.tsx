@@ -20,37 +20,50 @@ export default function PostItemScreen({ route, navigation }: any) {
   const [price, setPrice] = useState(editingPost?.price ?? "");
 
   const handleSubmit = async () => {
-    if (!title || !description) {
-      Alert.alert("Missing fields", "Please fill title and description");
+    if (!title.trim() || !description.trim()) {
+      Alert.alert('Missing info', 'Title and description are required.');
+      return;
+    }
+    if (!type) {
+      Alert.alert('Missing info', 'Please choose Need or Sell.');
+      return;
+    }
+
+    const priceValue = price.toString().trim()
+      ? Number(price)
+      : null;
+    if (price.toString().trim() && isNaN(priceValue as number)) {
+      Alert.alert('Invalid price', 'Price must be a number.');
       return;
     }
 
     try {
       if (editingPost) {
-        await updateDoc(doc(db, "posts", editingPost.id), {
+        await updateDoc(doc(db, 'posts', editingPost.id), {
           type,
-          title,
-          description,
-          price,
+          title: title.trim(),
+          description: description.trim(),
+          price: priceValue,
         });
-        Alert.alert("Updated", "Post updated successfully");
+        Alert.alert('Updated', 'Post updated successfully');
       } else {
-        await addDoc(collection(db, "posts"), {
+        await addDoc(collection(db, 'posts'), {
           type,
-          title,
-          description,
-          price,
+          title: title.trim(),
+          description: description.trim(),
+          price: priceValue,
           userId: auth.currentUser?.uid,
           userEmail: auth.currentUser?.email,
           createdAt: serverTimestamp(),
         });
-        Alert.alert("Posted", "Your request has been posted");
+        Alert.alert('Posted', 'Your request has been posted');
       }
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      Alert.alert('Error', e.message);
     }
   };
+
 
   return (
     <View style={styles.container}>
@@ -79,12 +92,14 @@ export default function PostItemScreen({ route, navigation }: any) {
 
       <TextInput
         placeholder="Title"
+        placeholderTextColor="#585858ff"
         value={title}
         onChangeText={setTitle}
         style={styles.input}
       />
       <TextInput
         placeholder="Description"
+        placeholderTextColor="#585858ff"
         value={description}
         onChangeText={setDescription}
         style={[styles.input, { height: 80 }]}
@@ -92,6 +107,7 @@ export default function PostItemScreen({ route, navigation }: any) {
       />
       <TextInput
         placeholder="Price (optional)"
+        placeholderTextColor="#585858ff"
         value={price}
         onChangeText={setPrice}
         style={styles.input}

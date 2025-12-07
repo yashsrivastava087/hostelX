@@ -5,10 +5,9 @@ import { useEffect } from 'react';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import MyPostsScreen from './MyPostsScreen';
-
+import RequestsScreen from './RequestsScreen';
 import { Pressable } from 'react-native';
-
-import { View, Text, Button, TextInput, StyleSheet, Alert } from 'react-native';
+import { View, Text, Button, TextInput, StyleSheet, Alert, ScrollView } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
@@ -48,6 +47,7 @@ function AuthScreen({ navigation }: any) {
 
       <TextInput
         placeholder="Email"
+        placeholderTextColor="#585858ff"
         value={email}
         onChangeText={setEmail}
         style={styles.input}
@@ -55,6 +55,7 @@ function AuthScreen({ navigation }: any) {
       />
       <TextInput
         placeholder="Password"
+        placeholderTextColor="#585858ff"
         value={password}
         onChangeText={setPassword}
         style={styles.input}
@@ -73,11 +74,13 @@ function AuthScreen({ navigation }: any) {
     </View>
   );
 }
-
 function HomeScreen({ navigation }: any) {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'need' | 'sell'>('all'); 
+  const [filter, setFilter] = useState<'all' | 'need' | 'sell'>('all');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'time' | 'price'>('time');
+
   useEffect(() => {
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, snap => {
@@ -94,22 +97,54 @@ function HomeScreen({ navigation }: any) {
     navigation.replace('Auth');
   };
 
-  const filtered = posts.filter(p => filter === 'all' || p.type === filter);
+  const filtered = posts
+    .filter(p => filter === 'all' || p.type === filter)
+    .filter(p => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        (p.title || '').toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q)
+      );
+    });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'time') {
+      // already newest-first from Firestore
+      return 0;
+    }
+    const pa = Number(a.price) || 0;
+    const pb = Number(b.price) || 0;
+    return pa - pb; // low to high
+  });
 
   return (
-    
     <View style={styles.container}>
       <Text style={styles.title}>HostelX Marketplace</Text>
-     
-      
 
-      <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+      <TextInput
+        placeholder="Search items..."
+        placeholderTextColor="#585858ff"
+        value={search}
+        onChangeText={setSearch}
+        style={[styles.input, { marginBottom: 10 }]}
+      />
+
+      <View style={{ flexDirection: 'row', marginBottom: 10, flexWrap: 'wrap' }}>
         <Button title="My Posts" onPress={() => navigation.navigate('MyPosts')} />
+          <Button title="Requests" onPress={() => navigation.navigate('Requests')} />
+        <View style={{ width: 10 }} />
         <Button title="All" onPress={() => setFilter('all')} />
         <View style={{ width: 10 }} />
         <Button title="Need" onPress={() => setFilter('need')} />
         <View style={{ width: 10 }} />
         <Button title="Sell" onPress={() => setFilter('sell')} />
+      </View>
+
+      <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+        <Button title="Sort by time" onPress={() => setSortBy('time')} />
+        <View style={{ width: 10 }} />
+        <Button title="Sort by price" onPress={() => setSortBy('price')} />
       </View>
 
       <Button title="Post New Request" onPress={() => navigation.navigate('PostItem')} />
@@ -118,23 +153,25 @@ function HomeScreen({ navigation }: any) {
         <Button title="Logout" color="#cc0000" onPress={handleLogout} />
       </View>
 
-      {loading ? (
+            {loading ? (
         <Text style={{ marginTop: 20 }}>Loading posts...</Text>
       ) : (
-        filtered.map(p => (
-          <Pressable
-            key={p.id}
-            onPress={() => navigation.navigate('PostDetail', { post: p })}
-            style={{ marginTop: 20, padding: 15, borderWidth: 1, borderRadius: 10 }}
-          >
-            <Text style={{ fontWeight: 'bold' }}>
-              [{p.type === 'need' ? 'NEED' : 'SELL'}] {p.title}
-            </Text>
-            <Text>{p.description}</Text>
-            {p.price ? <Text>Price: {p.price}</Text> : null}
-            <Text style={{ fontSize: 12, color: '#666' }}>{p.userEmail}</Text>
-          </Pressable>
-        ))
+        <ScrollView style={{ marginTop: 20 }}>
+          {sorted.map(p => (
+            <Pressable
+              key={p.id}
+              onPress={() => navigation.navigate('PostDetail', { post: p })}
+              style={{ marginBottom: 15, padding: 15, borderWidth: 1, borderRadius: 10 }}
+            >
+              <Text style={{ fontWeight: 'bold' }}>
+                [{p.type === 'need' ? 'NEED' : 'SELL'}] {p.title}
+              </Text>
+              <Text>{p.description}</Text>
+              {p.price ? <Text>Price: {p.price}</Text> : null}
+              <Text style={{ fontSize: 12, color: '#666' }}>{p.userEmail}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       )}
 
     </View>
@@ -144,11 +181,13 @@ function HomeScreen({ navigation }: any) {
 
 
 
+
 export default function AppNavigator() {
   return (
     <Stack.Navigator initialRouteName="Auth">
       <Stack.Screen name="PostItem" component={PostItemScreen} />
       <Stack.Screen name="MyPosts" component={MyPostsScreen} />
+      <Stack.Screen name="Requests" component={RequestsScreen} />
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />
       <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Home" component={HomeScreen} />
