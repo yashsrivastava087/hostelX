@@ -1,30 +1,19 @@
 // app/AppNavigator.tsx
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-} from "firebase/auth";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import { useEffect, useState } from "react";
-import {
-  Alert,
-  Button,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { useState } from 'react';
+import PostItemScreen from './PostItemScreen';
+import { useEffect } from 'react';
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
+import MyPostsScreen from './MyPostsScreen';
+import RequestsScreen from './RequestsScreen';
+import { Pressable } from 'react-native';
+import { View, Text, Button, TextInput, StyleSheet, Alert, ScrollView } from 'react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebaseConfig';
+import PostDetailScreen from './PostDetailScreen';
 
-import { auth, db } from "../firebaseConfig";
-import MyPostsScreen from "./MyPostsScreen";
-import PostDetailScreen from "./PostDetailScreen";
-import PostItemScreen from "./PostItemScreen";
-import RequestsScreen from "./RequestsScreen";
+import { signOut } from 'firebase/auth';
 
 const Stack = createNativeStackNavigator();
 
@@ -39,15 +28,16 @@ function AuthScreen({ navigation }: any) {
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
+        // We will handle navigation better later, but this works for now
         Alert.alert("Success", "Logged in successfully!");
-        navigation.replace("Home");
+        navigation.replace('Home');
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
         Alert.alert("Success", "Account created! Welcome.");
-        navigation.replace("Home");
+        navigation.replace('Home');
       }
     } catch (error: any) {
-      Alert.alert("Authentication Error", error.message);
+      Alert.alert('Authentication Error', error.message);
     }
   };
 
@@ -57,39 +47,29 @@ function AuthScreen({ navigation }: any) {
         <Text style={styles.appName}>HostelX</Text>
         <Text style={styles.subtitle}>Your hostel marketplace</Text>
 
-        <TextInput
-          placeholder="Email address"
-          placeholderTextColor="#9ca3af"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.authInput}
-          autoCapitalize="none"
-        />
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#9ca3af"
-          value={password}
-          onChangeText={setPassword}
-          style={styles.authInput}
-          secureTextEntry
-        />
+      <TextInput
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        style={styles.input}
+        autoCapitalize="none"
+      />
+      <TextInput
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        style={styles.input}
+        secureTextEntry
+      />
 
-        <View style={{ marginTop: 10 }}>
-          <Button
-            title={isLogin ? "Log in" : "Sign up"}
-            onPress={handleAuth}
-            color="#10b981"
-          />
-        </View>
+      <Button title={isLogin ? "Login" : "Sign Up"} onPress={handleAuth} />
 
-        <Pressable
+      <View style={{ marginTop: 20 }}>
+        <Button
+          title={isLogin ? "Create new account" : "I have an account"}
           onPress={() => setIsLogin(!isLogin)}
-          style={{ marginTop: 16 }}
-        >
-          <Text style={styles.switchText}>
-            {isLogin ? "Create a new account" : "I have an account"}
-          </Text>
-        </Pressable>
+          color="#666"
+        />
       </View>
 
       <Text style={styles.footerText}>
@@ -267,30 +247,9 @@ function HomeScreen({ navigation }: any) {
   );
 }
 
-// --- Navigator root ---
-
 export default function AppNavigator() {
-  const [initializing, setInitializing] = useState(true);
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setInitializing(false);
-    });
-    return () => unsub();
-  }, []);
-
-  if (initializing) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-
   return (
-    <Stack.Navigator initialRouteName={user ? "Home" : "Auth"}>
+    <Stack.Navigator initialRouteName="Auth">
       <Stack.Screen name="PostItem" component={PostItemScreen} />
       <Stack.Screen name="MyPosts" component={MyPostsScreen} />
       <Stack.Screen name="Requests" component={RequestsScreen} />
@@ -308,58 +267,6 @@ export default function AppNavigator() {
 // --- Styles ---
 
 const styles = StyleSheet.create({
-  authContainer: {
-    flex: 1,
-    backgroundColor: "#f3f4f6",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  authCard: {
-    width: "100%",
-    backgroundColor: "#ffffff",
-    borderRadius: 24,
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-    alignItems: "center",
-  },
-  appName: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 4,
-    color: "#111827",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 24,
-  },
-  authInput: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: "#f9fafb",
-    marginBottom: 12,
-    fontSize: 14,
-  },
-  switchText: {
-    color: "#10b981",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  footerText: {
-    marginTop: 16,
-    fontSize: 12,
-    color: "#6b7280",
-  },
   container: {
     flex: 1,
     justifyContent: "center",
