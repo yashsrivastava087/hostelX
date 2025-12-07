@@ -12,6 +12,7 @@ import {
   Alert,
   Button,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -62,6 +63,10 @@ export default function PostItemScreen({ route, navigation }: any) {
     });
   };
 
+  const handleRemoveImage = (uriToRemove: string) => {
+    setImages((prev) => prev.filter((u) => u !== uriToRemove));
+  };
+
   const handleSubmit = async () => {
     if (!title.trim() || !description.trim()) {
       Alert.alert("Missing info", "Title and description are required.");
@@ -82,6 +87,7 @@ export default function PostItemScreen({ route, navigation }: any) {
       const imageUrls: string[] = [];
 
       for (const uri of images) {
+        // keep existing Cloudinary URLs when editing
         if (uri.startsWith("https://res.cloudinary.com")) {
           imageUrls.push(uri);
           continue;
@@ -222,11 +228,20 @@ export default function PostItemScreen({ route, navigation }: any) {
         <Button title="Add images" onPress={handlePickImages} />
         <ScrollView horizontal style={{ marginTop: 10 }}>
           {images.map((uri) => (
-            <Image
-              key={uri}
-              source={{ uri }}
-              style={{ width: 80, height: 80, marginRight: 8, borderRadius: 8 }}
-            />
+            <View key={uri} style={{ marginRight: 8, alignItems: "center" }}>
+              <Image
+                source={{ uri }}
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 8,
+                  marginBottom: 4,
+                }}
+              />
+              <Pressable onPress={() => handleRemoveImage(uri)}>
+                <Text style={{ fontSize: 12, color: "#cc0000" }}>Remove</Text>
+              </Pressable>
+            </View>
           ))}
         </ScrollView>
       </View>
