@@ -2,6 +2,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   createUserWithEmailAndPassword,
+  onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
@@ -23,10 +24,11 @@ import { auth, db } from "../firebaseConfig";
 import MyPostsScreen from "./MyPostsScreen";
 import PostDetailScreen from "./PostDetailScreen";
 import PostItemScreen from "./PostItemScreen";
+import RequestsScreen from "./RequestsScreen";
 
 const Stack = createNativeStackNavigator();
 
-// --- Screens ---
+// --- Auth Screen ---
 
 function AuthScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
@@ -50,36 +52,54 @@ function AuthScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>HostelX</Text>
+    <View style={styles.authContainer}>
+      <View style={styles.authCard}>
+        <Text style={styles.appName}>HostelX</Text>
+        <Text style={styles.subtitle}>Your hostel marketplace</Text>
 
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        autoCapitalize="none"
-      />
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-        secureTextEntry
-      />
-
-      <Button title={isLogin ? "Login" : "Sign Up"} onPress={handleAuth} />
-
-      <View style={{ marginTop: 20 }}>
-        <Button
-          title={isLogin ? "Create new account" : "I have an account"}
-          onPress={() => setIsLogin(!isLogin)}
-          color="#666"
+        <TextInput
+          placeholder="Email address"
+          placeholderTextColor="#9ca3af"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.authInput}
+          autoCapitalize="none"
         />
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor="#9ca3af"
+          value={password}
+          onChangeText={setPassword}
+          style={styles.authInput}
+          secureTextEntry
+        />
+
+        <View style={{ marginTop: 10 }}>
+          <Button
+            title={isLogin ? "Log in" : "Sign up"}
+            onPress={handleAuth}
+            color="#10b981"
+          />
+        </View>
+
+        <Pressable
+          onPress={() => setIsLogin(!isLogin)}
+          style={{ marginTop: 16 }}
+        >
+          <Text style={styles.switchText}>
+            {isLogin ? "Create a new account" : "I have an account"}
+          </Text>
+        </Pressable>
       </View>
+
+      <Text style={styles.footerText}>
+        Buy & sell within your hostel community
+      </Text>
     </View>
   );
 }
+
+// --- Home Screen ---
 
 function HomeScreen({ navigation }: any) {
   const [posts, setPosts] = useState<any[]>([]);
@@ -134,6 +154,7 @@ function HomeScreen({ navigation }: any) {
 
       <TextInput
         placeholder="Search items..."
+        placeholderTextColor="#585858ff"
         value={search}
         onChangeText={setSearch}
         style={[styles.input, { marginBottom: 10 }]}
@@ -145,6 +166,11 @@ function HomeScreen({ navigation }: any) {
         <Button
           title="My Posts"
           onPress={() => navigation.navigate("MyPosts")}
+        />
+        <View style={{ width: 10 }} />
+        <Button
+          title="Requests"
+          onPress={() => navigation.navigate("Requests")}
         />
         <View style={{ width: 10 }} />
         <Button title="All" onPress={() => setFilter("all")} />
@@ -241,11 +267,33 @@ function HomeScreen({ navigation }: any) {
   );
 }
 
+// --- Navigator root ---
+
 export default function AppNavigator() {
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setInitializing(false);
+    });
+    return () => unsub();
+  }, []);
+
+  if (initializing) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <Stack.Navigator initialRouteName="Auth">
+    <Stack.Navigator initialRouteName={user ? "Home" : "Auth"}>
       <Stack.Screen name="PostItem" component={PostItemScreen} />
       <Stack.Screen name="MyPosts" component={MyPostsScreen} />
+      <Stack.Screen name="Requests" component={RequestsScreen} />
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />
       <Stack.Screen
         name="Auth"
@@ -257,7 +305,61 @@ export default function AppNavigator() {
   );
 }
 
+// --- Styles ---
+
 const styles = StyleSheet.create({
+  authContainer: {
+    flex: 1,
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  authCard: {
+    width: "100%",
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    alignItems: "center",
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 4,
+    color: "#111827",
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 24,
+  },
+  authInput: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: "#f9fafb",
+    marginBottom: 12,
+    fontSize: 14,
+  },
+  switchText: {
+    color: "#10b981",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  footerText: {
+    marginTop: 16,
+    fontSize: 12,
+    color: "#6b7280",
+  },
   container: {
     flex: 1,
     justifyContent: "center",
