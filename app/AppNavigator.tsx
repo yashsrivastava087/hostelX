@@ -170,7 +170,7 @@ function HomeScreen({ navigation }: any) {
               <Text>📩</Text>
             </Pressable>
             <Pressable onPress={handleLogout}>
-              <Text style={{ fontSize: 18 }}>↩</Text>
+              <Text style={{ fontSize: 18 }}>↩︎</Text>
             </Pressable>
           </View>
         </View>
@@ -257,7 +257,7 @@ function HomeScreen({ navigation }: any) {
             marginBottom: 8,
           }}
         >
-          <Text style={{ marginRight: 4 }}>↕</Text>
+          <Text style={{ marginRight: 4 }}>↕︎</Text>
           <Pressable onPress={() => setSortBy("time")}>
             <Text
               style={{
