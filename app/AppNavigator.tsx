@@ -20,6 +20,8 @@ import {
   View,
 } from "react-native";
 import { auth, db } from "../firebaseConfig";
+import ChatRoomScreen from "./ChatRoomScreen";
+import ChatsScreen from "./ChatsScreen";
 import MyPostsScreen from "./MyPostsScreen";
 import PostDetailScreen from "./PostDetailScreen";
 import PostItemScreen from "./PostItemScreen";
@@ -201,6 +203,19 @@ function HomeScreen({ navigation }: any) {
               >
                 <Text>📩</Text>
               </Pressable>
+
+              <Pressable
+                onPress={() => navigation.navigate("Chats")}
+                style={{
+                  padding: 8,
+                  borderRadius: 999,
+                  backgroundColor: "#f3f4f6",
+                  marginRight: 8,
+                }}
+              >
+                <Text>💬</Text>
+              </Pressable>
+
               <Pressable onPress={handleLogout}>
                 <Text style={{ fontSize: 18 }}>↩︎</Text>
               </Pressable>
@@ -506,6 +521,8 @@ export default function AppNavigator() {
 
   return (
     <Stack.Navigator initialRouteName={user ? "Home" : "Auth"}>
+      <Stack.Screen name="Chats" component={ChatsScreen} />
+      <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
       <Stack.Screen name="PostItem" component={PostItemScreen} />
       <Stack.Screen name="MyPosts" component={MyPostsScreen} />
       <Stack.Screen name="Requests" component={RequestsScreen} />

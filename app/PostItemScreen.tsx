@@ -23,6 +23,7 @@ import {
   CLOUDINARY_UPLOAD_PRESET,
 } from "../cloudinaryConfig";
 import { auth, db } from "../firebaseConfig";
+import { Keyboard, TouchableWithoutFeedback } from "react-native";
 
 export default function PostItemScreen({ route, navigation }: any) {
   const [durationMinutes, setDurationMinutes] = useState<30 | 60 | 120>(30);
@@ -153,6 +154,7 @@ export default function PostItemScreen({ route, navigation }: any) {
   };
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={styles.container}>
       <Text style={styles.headerText}>
         {editingPost ? "Edit Post" : "Post New Request"}
@@ -318,6 +320,7 @@ export default function PostItemScreen({ route, navigation }: any) {
         </Text>
       </Pressable>
     </View>
+    </TouchableWithoutFeedback>
   );
 }
 

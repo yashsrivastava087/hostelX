@@ -8,6 +8,8 @@ import {
   orderBy,
   query,
   updateDoc,
+  serverTimestamp,
+  addDoc,
   where,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -67,10 +69,22 @@ export default function RequestsScreen() {
   }, []);
 
   const handleUpdateStatus = async (
-    id: string,
+    request: any,
     status: "accepted" | "rejected"
   ) => {
-    await updateDoc(doc(db, "requests", id), { status });
+    await updateDoc(doc(db, "requests", request.id), { status });
+
+    if (status === "accepted") {
+      await addDoc(collection(db, "conversations"), {
+        participantIds: [request.postOwnerId, request.requesterId],
+        postId: request.postId,
+        requestId: request.id,
+        status: "active",
+        createdAt: serverTimestamp(),
+        lastMessage: null,
+        lastMessageAt: null,
+      });
+    }
   };
 
   const list = mode === "incoming" ? incoming : outgoing;
@@ -218,13 +232,13 @@ export default function RequestsScreen() {
                   <View style={styles.actionsRow}>
                     <Pressable
                       style={[styles.actionButton, styles.acceptButton]}
-                      onPress={() => handleUpdateStatus(r.id, "accepted")}
+                      onPress={() => handleUpdateStatus(r, "accepted")}
                     >
                       <Text style={styles.actionButtonText}>Accept</Text>
                     </Pressable>
                     <Pressable
                       style={[styles.actionButton, styles.rejectButton]}
-                      onPress={() => handleUpdateStatus(r.id, "rejected")}
+                      onPress={() => handleUpdateStatus(r, "rejected")}
                     >
                       <Text style={styles.actionButtonText}>Reject</Text>
                     </Pressable>
