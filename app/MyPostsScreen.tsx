@@ -57,25 +57,67 @@ export default function MyPostsScreen({ navigation }: any) {
         <Text>No posts yet.</Text>
       ) : (
         posts.map(p => (
-          <Pressable
+          <View
             key={p.id}
-            onPress={() => navigation.navigate('PostItem', { post: p })}
-            style={styles.card}
+            style={{
+              marginBottom: 16,
+              padding: 16,
+              borderRadius: 20,
+              backgroundColor: '#fff',
+              shadowColor: '#000',
+              shadowOpacity: 0.05,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 3,
+            }}
           >
-            <Text style={{ fontWeight: 'bold' }}>
-              [{p.type === 'need' ? 'NEED' : 'SELL'}] {p.title}
-            </Text>
-            <Text>{p.description}</Text>
+            {/* Top row: badge + title */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+              <View
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 999,
+                  backgroundColor: p.type === 'sell' ? '#d1fae5' : '#fef3c7',
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '600',
+                    color: p.type === 'sell' ? '#047857' : '#b45309',
+                  }}
+                >
+                  {p.type === 'sell' ? 'SELL' : 'NEED'}
+                </Text>
+              </View>
 
-            <View style={{ flexDirection: 'row', marginTop: 10, justifyContent: 'space-between' }}>
-              <Button
-                title="Edit"
-                onPress={() => navigation.navigate('PostItem', { post: p })}
-              />
-              <Button title="Delete" color="#cc0000" onPress={() => handleDelete(p.id)} />
+              {p.price ? (
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827' }}>
+                  ₹{p.price}
+                </Text>
+              ) : null}
             </View>
-          </Pressable>
+
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 4 }}>
+              {p.title}
+            </Text>
+            <Text style={{ fontSize: 13, color: '#4b5563', marginBottom: 10 }}>
+              {p.description}
+            </Text>
+
+            {/* Edit / Delete row */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Pressable onPress={() => navigation.navigate('PostItem', { post: p })}>
+                <Text style={{ color: '#2563eb', fontWeight: '600' }}>Edit</Text>
+              </Pressable>
+              <Pressable onPress={() => handleDelete(p.id)}>
+                <Text style={{ color: '#ef4444', fontWeight: '600' }}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
         ))
+
 
       )}
     </View>

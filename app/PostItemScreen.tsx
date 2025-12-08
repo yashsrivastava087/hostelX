@@ -10,7 +10,6 @@ import {
 import { useState } from "react";
 import {
   Alert,
-  Button,
   Image,
   Pressable,
   ScrollView,
@@ -155,114 +154,318 @@ export default function PostItemScreen({ route, navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
+      <Text style={styles.headerText}>
         {editingPost ? "Edit Post" : "Post New Request"}
       </Text>
 
-      <View style={{ flexDirection: "row", marginBottom: 10 }}>
-        <View style={{ flex: 1, marginRight: 5 }}>
-          <Button
-            title={type === "need" ? "✓ Need" : "Need"}
-            onPress={() => setType("need")}
-            color={type === "need" ? "#007AFF" : "#999"}
-          />
-        </View>
-        <View style={{ flex: 1, marginLeft: 5 }}>
-          <Button
-            title={type === "sell" ? "✓ Sell" : "Sell"}
-            onPress={() => setType("sell")}
-            color={type === "sell" ? "#007AFF" : "#999"}
+      {/* Need / Sell toggle */}
+      <View style={styles.segmentContainer}>
+        <Pressable
+          onPress={() => setType("need")}
+          style={[
+            styles.segmentButton,
+            type === "need" && styles.segmentButtonActive,
+          ]}
+        >
+          <Text
+            style={[
+              styles.segmentText,
+              type === "need" && styles.segmentTextActive,
+            ]}
+          >
+            Need
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setType("sell")}
+          style={[
+            styles.segmentButton,
+            type === "sell" && styles.segmentButtonActive,
+          ]}
+        >
+          <Text
+            style={[
+              styles.segmentText,
+              type === "sell" && styles.segmentTextActive,
+            ]}
+          >
+            Sell
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* Title */}
+      <View style={styles.fieldContainer}>
+        <Text style={styles.label}>Title</Text>
+        <TextInput
+          placeholder="What do you need or want to sell?"
+          placeholderTextColor="#9ca3af"
+          value={title}
+          onChangeText={setTitle}
+          style={styles.input}
+        />
+      </View>
+
+      {/* Description */}
+      <View style={styles.fieldContainer}>
+        <Text style={styles.label}>Description</Text>
+        <TextInput
+          placeholder="Add details so others know exactly what you mean"
+          placeholderTextColor="#9ca3af"
+          value={description}
+          onChangeText={setDescription}
+          style={[styles.input, styles.textArea]}
+          multiline
+        />
+      </View>
+
+      {/* Price */}
+      <View style={styles.fieldContainer}>
+        <Text style={styles.label}>Price (optional)</Text>
+        <View style={styles.priceRow}>
+          <Text style={styles.currency}>₹</Text>
+          <TextInput
+            placeholder="0"
+            placeholderTextColor="#9ca3af"
+            value={price}
+            onChangeText={setPrice}
+            style={[styles.input, styles.priceInput]}
+            keyboardType="numeric"
           />
         </View>
       </View>
 
-      <TextInput
-        placeholder="Title"
-        placeholderTextColor="#585858ff"
-        value={title}
-        onChangeText={setTitle}
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Description"
-        placeholderTextColor="#585858ff"
-        value={description}
-        onChangeText={setDescription}
-        style={[styles.input, { height: 80 }]}
-        multiline
-      />
-      <TextInput
-        placeholder="Price (optional)"
-        placeholderTextColor="#585858ff"
-        value={price}
-        onChangeText={setPrice}
-        style={styles.input}
-        keyboardType="numeric"
-      />
-
-      <View style={{ flexDirection: "row", marginBottom: 10 }}>
-        <View style={{ flex: 1, marginRight: 5 }}>
-          <Button
-            title={durationMinutes === 30 ? "✓ 30 min" : "30 min"}
+      {/* Duration */}
+      <View style={styles.fieldContainer}>
+        <Text style={styles.label}>Expires in</Text>
+        <View style={styles.durationRow}>
+          <Pressable
             onPress={() => setDurationMinutes(30)}
-            color={durationMinutes === 30 ? "#007AFF" : "#999"}
-          />
-        </View>
-        <View style={{ flex: 1, marginHorizontal: 5 }}>
-          <Button
-            title={durationMinutes === 60 ? "✓ 1 hr" : "1 hr"}
+            style={[
+              styles.durationPill,
+              durationMinutes === 30 && styles.durationPillActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.durationText,
+                durationMinutes === 30 && styles.durationTextActive,
+              ]}
+            >
+              30 min
+            </Text>
+          </Pressable>
+          <Pressable
             onPress={() => setDurationMinutes(60)}
-            color={durationMinutes === 60 ? "#007AFF" : "#999"}
-          />
-        </View>
-        <View style={{ flex: 1, marginLeft: 5 }}>
-          <Button
-            title={durationMinutes === 120 ? "✓ 2 hr" : "2 hr"}
+            style={[
+              styles.durationPill,
+              durationMinutes === 60 && styles.durationPillActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.durationText,
+                durationMinutes === 60 && styles.durationTextActive,
+              ]}
+            >
+              1 hr
+            </Text>
+          </Pressable>
+          <Pressable
             onPress={() => setDurationMinutes(120)}
-            color={durationMinutes === 120 ? "#007AFF" : "#999"}
-          />
+            style={[
+              styles.durationPill,
+              durationMinutes === 120 && styles.durationPillActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.durationText,
+                durationMinutes === 120 && styles.durationTextActive,
+              ]}
+            >
+              2 hr
+            </Text>
+          </Pressable>
         </View>
       </View>
 
-      <View style={{ marginVertical: 10 }}>
-        <Button title="Add images" onPress={handlePickImages} />
+      {/* Images */}
+      <View style={styles.fieldContainer}>
+        <Text style={styles.label}>Images (up to 3)</Text>
+        <Pressable style={styles.addImageButton} onPress={handlePickImages}>
+          <Text style={styles.addImageText}>+ Add images</Text>
+        </Pressable>
         <ScrollView horizontal style={{ marginTop: 10 }}>
           {images.map((uri) => (
-            <View key={uri} style={{ marginRight: 8, alignItems: "center" }}>
-              <Image
-                source={{ uri }}
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 8,
-                  marginBottom: 4,
-                }}
-              />
-              <Pressable onPress={() => handleRemoveImage(uri)}>
-                <Text style={{ fontSize: 12, color: "#cc0000" }}>Remove</Text>
+            <View key={uri} style={styles.imageWrapper}>
+              <Image source={{ uri }} style={styles.image} />
+              <Pressable
+                style={styles.removeBadge}
+                onPress={() => handleRemoveImage(uri)}
+              >
+                <Text style={styles.removeBadgeText}>×</Text>
               </Pressable>
             </View>
           ))}
         </ScrollView>
       </View>
 
-      <Button
-        title={editingPost ? "Save Changes" : "Post Item"}
-        onPress={handleSubmit}
-      />
+      {/* Submit */}
+      <Pressable style={styles.primaryButton} onPress={handleSubmit}>
+        <Text style={styles.primaryButtonText}>
+          {editingPost ? "Save Changes" : "Post Item"}
+        </Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 15 },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#f3f4f6",
+  },
+  headerText: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#111827",
+  },
+  fieldContainer: {
+    marginBottom: 14,
+  },
+  label: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginBottom: 6,
+  },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    padding: 12,
+    borderColor: "#e5e7eb",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 10,
-    marginBottom: 12,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#ffffff",
+    fontSize: 14,
+    color: "#111827",
+  },
+  textArea: {
+    height: 90,
+    textAlignVertical: "top",
+  },
+  segmentContainer: {
+    flexDirection: "row",
+    backgroundColor: "#e5e7eb",
+    borderRadius: 999,
+    padding: 4,
+    marginBottom: 18,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentButtonActive: {
+    backgroundColor: "#2563eb",
+  },
+  segmentText: {
+    fontSize: 14,
+    color: "#4b5563",
+    fontWeight: "500",
+  },
+  segmentTextActive: {
+    color: "#ffffff",
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  currency: {
+    marginRight: 6,
+    fontSize: 16,
+    color: "#6b7280",
+    fontWeight: "600",
+  },
+  priceInput: {
+    flex: 1,
+  },
+  durationRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  durationPill: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+  },
+  durationPillActive: {
+    backgroundColor: "#dbeafe",
+    borderColor: "#2563eb",
+  },
+  durationText: {
+    fontSize: 13,
+    color: "#4b5563",
+  },
+  durationTextActive: {
+    color: "#1d4ed8",
+    fontWeight: "600",
+  },
+  addImageButton: {
+    marginTop: 4,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    backgroundColor: "#f9fafb",
+    alignItems: "center",
+  },
+  addImageText: {
+    fontSize: 14,
+    color: "#2563eb",
+    fontWeight: "500",
+  },
+  imageWrapper: {
+    marginRight: 10,
+  },
+  image: {
+    width: 90,
+    height: 90,
+    borderRadius: 10,
+  },
+  removeBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#111827",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  removeBadgeText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  primaryButton: {
+    marginTop: 10,
+    paddingVertical: 14,
+    borderRadius: 999,
+    backgroundColor: "#2563eb",
+    alignItems: "center",
+  },
+  primaryButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

@@ -142,6 +142,7 @@ function HomeScreen({ navigation }: any) {
   });
 
   return (
+    
     <View style={styles.container}>
       <View style={{ marginBottom: 16 }}>
         {/* Top row: HostelX + right icons placeholder */}
@@ -157,7 +158,6 @@ function HomeScreen({ navigation }: any) {
             HostelX
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            {/* Requests count badge later */}
             <Pressable
               onPress={() => navigation.navigate("Requests")}
               style={{
@@ -175,7 +175,6 @@ function HomeScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* Search */}
         <View
           style={{
             flexDirection: "row",
@@ -197,7 +196,6 @@ function HomeScreen({ navigation }: any) {
           />
         </View>
 
-        {/* Row: My Posts + filter chips */}
         <View
           style={{
             flexDirection: "row",
