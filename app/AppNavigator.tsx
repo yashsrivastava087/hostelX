@@ -7,10 +7,11 @@ import {
   signOut,
 } from "firebase/auth";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Button,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -103,6 +104,7 @@ function HomeScreen({ navigation }: any) {
   const [filter, setFilter] = useState<"all" | "need" | "sell">("all");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"time" | "price">("time");
+  const [nowMs, setNowMs] = useState(Date.now());
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -115,12 +117,42 @@ function HomeScreen({ navigation }: any) {
     return () => unsub();
   }, []);
 
+  // ticking clock for timers
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const getRemainingText = (p: any) => {
+    const expMs = p.expiresAt?.toMillis ? p.expiresAt.toMillis() : p.expiresAt;
+    if (!expMs) return "";
+    const diff = expMs - nowMs;
+    if (diff <= 0) return "Expired";
+
+    const totalMins = Math.floor(diff / 60000);
+    const hours = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+
+    if (hours > 0) {
+      return mins > 0 ? `${hours}h ${mins}m left` : `${hours}h left`;
+    }
+    return `${mins}m left`;
+  };
+
   const handleLogout = async () => {
     await signOut(auth);
     navigation.replace("Auth");
   };
 
   const filtered = posts
+    // hide expired
+    .filter((p) => {
+      const expMs = p.expiresAt?.toMillis
+        ? p.expiresAt.toMillis()
+        : p.expiresAt;
+      if (!expMs) return true;
+      return expMs > nowMs;
+    })
     .filter((p) => filter === "all" || p.type === filter)
     .filter((p) => {
       if (!search.trim()) return true;
@@ -143,259 +175,315 @@ function HomeScreen({ navigation }: any) {
 
   return (
     <View style={{ flex: 1 }}>
-    <View style={styles.container}>
-      <View style={{ marginBottom: 16 }}>
-        {/* Top row: HostelX + right icons placeholder */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <Text style={{ fontSize: 24, fontWeight: "700", color: "#111827" }}>
-            HostelX
-          </Text>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Pressable
-              onPress={() => navigation.navigate("Requests")}
-              style={{
-                padding: 8,
-                borderRadius: 999,
-                backgroundColor: "#f3f4f6",
-                marginRight: 8,
-              }}
-            >
-              <Text>📩</Text>
-            </Pressable>
-            <Pressable onPress={handleLogout}>
-              <Text style={{ fontSize: 18 }}>↩︎</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "#f3f4f6",
-            borderRadius: 999,
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            marginBottom: 12,
-          }}
-        >
-          <Text style={{ marginRight: 8, fontSize: 16 }}>🔍</Text>
-          <TextInput
-            placeholder="Search items..."
-            placeholderTextColor="#9ca3af"
-            value={search}
-            onChangeText={setSearch}
-            style={{ flex: 1, fontSize: 14 }}
-          />
-        </View>
-
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 8,
-          }}
-        >
-          <Pressable
-            onPress={() => navigation.navigate("MyPosts")}
+      <View style={styles.container}>
+        <View style={{ marginBottom: 16 }}>
+          {/* Top row: HostelX + right icons */}
+          <View
             style={{
-              paddingVertical: 8,
-              paddingHorizontal: 14,
-              borderRadius: 999,
-              backgroundColor: "#ffffff",
-              borderWidth: 1,
-              borderColor: "#e5e7eb",
-              marginRight: 8,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 16,
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: "500", color: "#111827" }}>
-              My Posts
+            <Text style={{ fontSize: 24, fontWeight: "700", color: "#111827" }}>
+              HostelX
             </Text>
-          </Pressable>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Pressable
+                onPress={() => navigation.navigate("Requests")}
+                style={{
+                  padding: 8,
+                  borderRadius: 999,
+                  backgroundColor: "#f3f4f6",
+                  marginRight: 8,
+                }}
+              >
+                <Text>📩</Text>
+              </Pressable>
+              <Pressable onPress={handleLogout}>
+                <Text style={{ fontSize: 18 }}>↩︎</Text>
+              </Pressable>
+            </View>
+          </View>
 
-          {(["all", "need", "sell"] as const).map((key) => (
+          {/* Search */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#f3f4f6",
+              borderRadius: 999,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              marginBottom: 12,
+            }}
+          >
+            <Text style={{ marginRight: 8, fontSize: 16 }}>🔍</Text>
+            <TextInput
+              placeholder="Search items..."
+              placeholderTextColor="#9ca3af"
+              value={search}
+              onChangeText={setSearch}
+              style={{ flex: 1, fontSize: 14 }}
+            />
+          </View>
+
+          {/* Filter row */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
             <Pressable
-              key={key}
-              onPress={() => setFilter(key)}
+              onPress={() => navigation.navigate("MyPosts")}
               style={{
                 paddingVertical: 8,
                 paddingHorizontal: 14,
                 borderRadius: 999,
-                backgroundColor: filter === key ? "#10b981" : "#ffffff",
+                backgroundColor: "#ffffff",
                 borderWidth: 1,
-                borderColor: filter === key ? "#10b981" : "#e5e7eb",
+                borderColor: "#e5e7eb",
                 marginRight: 8,
               }}
             >
               <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "500",
-                  color: filter === key ? "#ffffff" : "#4b5563",
-                }}
+                style={{ fontSize: 13, fontWeight: "500", color: "#111827" }}
               >
-                {key === "all" ? "All" : key === "need" ? "Need" : "Sell"}
+                My Posts
               </Text>
             </Pressable>
-          ))}
-        </View>
 
-        {/* Sort row like “Latest • Price” */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 8,
-          }}
-        >
-          <Text style={{ marginRight: 4 }}>↕︎</Text>
-          <Pressable onPress={() => setSortBy("time")}>
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: sortBy === "time" ? "600" : "400",
-                color: sortBy === "time" ? "#10b981" : "#6b7280",
-              }}
-            >
-              Latest
-            </Text>
-          </Pressable>
-          <Text style={{ marginHorizontal: 6, color: "#9ca3af" }}>•</Text>
-          <Pressable onPress={() => setSortBy("price")}>
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: sortBy === "price" ? "600" : "400",
-                color: sortBy === "price" ? "#10b981" : "#6b7280",
-              }}
-            >
-              Price
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {loading ? (
-        <Text style={{ marginTop: 20 }}>Loading posts...</Text>
-      ) : (
-        <ScrollView style={{ marginTop: 20 }}>
-          {sorted.map((p) => (
-            <Pressable
-              key={p.id}
-              onPress={() => navigation.navigate("PostDetail", { post: p })}
-              style={{
-                marginBottom: 16,
-                padding: 16,
-                borderRadius: 20,
-                backgroundColor: "#fff",
-                shadowColor: "#000",
-                shadowOpacity: 0.05,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 },
-                elevation: 3,
-              }}
-            >
-              {/* Top row: badge + price */}
-              <View
+            {(["all", "need", "sell"] as const).map((key) => (
+              <Pressable
+                key={key}
+                onPress={() => setFilter(key)}
                 style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginBottom: 8,
+                  paddingVertical: 8,
+                  paddingHorizontal: 14,
+                  borderRadius: 999,
+                  backgroundColor: filter === key ? "#10b981" : "#ffffff",
+                  borderWidth: 1,
+                  borderColor: filter === key ? "#10b981" : "#e5e7eb",
+                  marginRight: 8,
                 }}
               >
-                <View
+                <Text
                   style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 999,
-                    backgroundColor: p.type === "sell" ? "#d1fae5" : "#fef3c7",
+                    fontSize: 13,
+                    fontWeight: "500",
+                    color: filter === key ? "#ffffff" : "#4b5563",
                   }}
                 >
-                  <Text
+                  {key === "all" ? "All" : key === "need" ? "Need" : "Sell"}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Sort row */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <Text style={{ marginRight: 4 }}>↕︎</Text>
+            <Pressable onPress={() => setSortBy("time")}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: sortBy === "time" ? "600" : "400",
+                  color: sortBy === "time" ? "#10b981" : "#6b7280",
+                }}
+              >
+                Latest
+              </Text>
+            </Pressable>
+            <Text style={{ marginHorizontal: 6, color: "#9ca3af" }}>•</Text>
+            <Pressable onPress={() => setSortBy("price")}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: sortBy === "price" ? "600" : "400",
+                  color: sortBy === "price" ? "#10b981" : "#6b7280",
+                }}
+              >
+                Price
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {loading ? (
+          <Text style={{ marginTop: 20 }}>Loading posts...</Text>
+        ) : (
+          <ScrollView style={{ marginTop: 20 }}>
+            {sorted.map((p) => {
+              const remainingText = getRemainingText(p);
+
+              return (
+                <Pressable
+                  key={p.id}
+                  onPress={() => navigation.navigate("PostDetail", { post: p })}
+                  style={{
+                    marginBottom: 16,
+                    padding: 16,
+                    borderRadius: 20,
+                    backgroundColor: "#fff",
+                    shadowColor: "#000",
+                    shadowOpacity: 0.05,
+                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: 4 },
+                    elevation: 3,
+                  }}
+                >
+                  {/* Top row: badge + timer (right) */}
+                  <View
                     style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      color: p.type === "sell" ? "#047857" : "#b45309",
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 8,
                     }}
                   >
-                    {p.type === "sell" ? "SELL" : "NEED"}
-                  </Text>
-                </View>
+                    <View
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 999,
+                        backgroundColor:
+                          p.type === "sell" ? "#d1fae5" : "#fef3c7",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "600",
+                          color: p.type === "sell" ? "#047857" : "#b45309",
+                        }}
+                      >
+                        {p.type === "sell" ? "SELL" : "NEED"}
+                      </Text>
+                    </View>
 
-                {p.price ? (
+                    {remainingText ? (
+                      <Text
+                        style={{
+                          fontSize: 20,
+                          fontWeight: "bold",
+                          color:
+                            remainingText === "Expired" ? "#dc2626" : "#10b981",
+                        }}
+                      >
+                        {remainingText}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  {/* Image if available */}
+                  {p.imageUrls && p.imageUrls.length > 0 && (
+                    <View style={{ marginBottom: 8 }}>
+                      <Image
+                        source={{ uri: p.imageUrls[0] }}
+                        style={{
+                          width: "100%",
+                          height: 160,
+                          borderRadius: 12,
+                          marginBottom: 8,
+                        }}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  )}
+
+                  {/* Title */}
                   <Text
                     style={{
                       fontSize: 16,
                       fontWeight: "700",
                       color: "#111827",
+                      marginBottom: 4,
                     }}
                   >
-                    ₹{p.price}
+                    {p.title}
                   </Text>
-                ) : null}
-              </View>
 
-              {/* Title */}
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "700",
-                  color: "#111827",
-                  marginBottom: 4,
-                }}
-              >
-                {p.title}
-              </Text>
+                  {/* Description + email */}
+                  <View style={{ marginTop: 4 }}>
+                    <Text style={{ fontSize: 13, color: "#6b7280" }}>
+                      {p.description}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: "#9ca3af",
+                        marginTop: 6,
+                      }}
+                    >
+                      {p.userEmail}
+                    </Text>
+                  </View>
 
-              {/* Location + email (simple for now) */}
-              <View style={{ marginTop: 4 }}>
-                <Text style={{ fontSize: 13, color: "#6b7280" }}>
-                  {p.description}
-                </Text>
-                <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 6 }}>
-                  {p.userEmail}
-                </Text>
-              </View>
-              
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
+                  {/* Bottom row: price only, at right */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "flex-end",
+                      marginTop: 8,
+                    }}
+                  >
+                    {p.price ? (
+                      <Text
+                        style={{
+                          fontSize: 20,
+                          fontWeight: "700",
+                          color: "#111827",
+                        }}
+                      >
+                        ₹{p.price}
+                      </Text>
+                    ) : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+      </View>
+
+      {/* Floating Post button */}
+      <Pressable
+        onPress={() => navigation.navigate("PostItem")}
+        style={{
+          position: "absolute",
+          bottom: 50,
+          alignSelf: "center",
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: 24,
+          paddingVertical: 12,
+          borderRadius: 999,
+          backgroundColor: "#10b981",
+          shadowColor: "#000",
+          shadowOpacity: 0.15,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 5,
+        }}
+      >
+        <Text style={{ color: "#fff", fontSize: 20, marginRight: 8 }}>＋</Text>
+        <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+          Post Request
+        </Text>
+      </Pressable>
     </View>
-     <Pressable
-      onPress={() => navigation.navigate('PostItem')}
-      style={{
-        position: 'absolute',
-        bottom: 50,
-        alignSelf: 'center',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 999,
-        backgroundColor: '#10b981',
-        shadowColor: '#000',
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 5,
-      }}
-    >
-      <Text style={{ color: '#fff', fontSize: 20, marginRight: 8 }}>＋</Text>
-      <Text style={{ color: '#fff', fontWeight: '600', fontSize: 15 }}>
-        Post Request
-      </Text>
-    </Pressable>
-  </View>
   );
 }
+
 export default function AppNavigator() {
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -415,6 +503,7 @@ export default function AppNavigator() {
       </View>
     );
   }
+
   return (
     <Stack.Navigator initialRouteName={user ? "Home" : "Auth"}>
       <Stack.Screen name="PostItem" component={PostItemScreen} />

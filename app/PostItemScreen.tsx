@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   segmentButtonActive: {
-    backgroundColor: "#2563eb",
+    backgroundColor: "#10b981",
   },
   segmentText: {
     fontSize: 14,
@@ -408,14 +408,14 @@ const styles = StyleSheet.create({
   },
   durationPillActive: {
     backgroundColor: "#dbeafe",
-    borderColor: "#2563eb",
+    borderColor: "#10b981",
   },
   durationText: {
     fontSize: 13,
     color: "#4b5563",
   },
   durationTextActive: {
-    color: "#1d4ed8",
+    color: "#10b981",
     fontWeight: "600",
   },
   addImageButton: {
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   },
   addImageText: {
     fontSize: 14,
-    color: "#2563eb",
+    color: "#10b981",
     fontWeight: "500",
   },
   imageWrapper: {
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingVertical: 14,
     borderRadius: 999,
-    backgroundColor: "#2563eb",
+    backgroundColor: "#10b981",
     alignItems: "center",
   },
   primaryButtonText: {
