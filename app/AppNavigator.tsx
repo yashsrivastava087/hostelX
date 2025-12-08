@@ -142,7 +142,7 @@ function HomeScreen({ navigation }: any) {
   });
 
   return (
-    
+    <View style={{ flex: 1 }}>
     <View style={styles.container}>
       <View style={{ marginBottom: 16 }}>
         {/* Top row: HostelX + right icons placeholder */}
@@ -363,11 +363,37 @@ function HomeScreen({ navigation }: any) {
                   {p.userEmail}
                 </Text>
               </View>
+              
             </Pressable>
           ))}
         </ScrollView>
       )}
     </View>
+     <Pressable
+      onPress={() => navigation.navigate('PostItem')}
+      style={{
+        position: 'absolute',
+        bottom: 50,
+        alignSelf: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 999,
+        backgroundColor: '#10b981',
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 5,
+      }}
+    >
+      <Text style={{ color: '#fff', fontSize: 20, marginRight: 8 }}>＋</Text>
+      <Text style={{ color: '#fff', fontWeight: '600', fontSize: 15 }}>
+        Post Request
+      </Text>
+    </Pressable>
+  </View>
   );
 }
 export default function AppNavigator() {
