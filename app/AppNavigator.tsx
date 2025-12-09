@@ -7,6 +7,8 @@ import {
   signOut,
 } from "firebase/auth";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import SignUpScreen from "./SignUpScreen";
+
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -84,12 +86,10 @@ function AuthScreen({ navigation }: any) {
         </View>
 
         <Pressable
-          onPress={() => setIsLogin(!isLogin)}
+          onPress={() => navigation.navigate("SignUp")}
           style={{ marginTop: 16 }}
         >
-          <Text style={styles.switchText}>
-            {isLogin ? "Create a new account" : "I have an account"}
-          </Text>
+          <Text style={styles.switchText}>Create a new account</Text>
         </Pressable>
       </View>
 
@@ -530,6 +530,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Auth"
         component={AuthScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="SignUp"
+        component={SignUpScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen name="Home" component={HomeScreen} />
