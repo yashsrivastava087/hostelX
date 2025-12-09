@@ -1,13 +1,14 @@
 // app/AppNavigator.tsx
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
-  createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import SignUpScreen from "./SignUpScreen";
+// at top
+import { getDocs, where } from "firebase/firestore";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -34,22 +35,55 @@ const Stack = createNativeStackNavigator();
 // --- Screens ---
 
 function AuthScreen({ navigation }: any) {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState(""); // email or username
   const [password, setPassword] = useState("");
-  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const handleAuth = async () => {
+    if (!identifier || !password) {
+      Alert.alert("Missing info", "Please enter email/username and password.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
-        Alert.alert("Success", "Logged in successfully!");
-        navigation.replace("Home");
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-        Alert.alert("Success", "Account created! Welcome.");
-        navigation.replace("Home");
+      let emailToUse = identifier.trim();
+
+      // simple heuristic: if no "@" present, treat as username
+      const looksLikeUsername = !emailToUse.includes("@");
+
+      if (looksLikeUsername) {
+        // find user by username in Firestore
+        const q = query(
+          collection(db, "users"),
+          where("username", "==", emailToUse.toLowerCase())
+        );
+        const snap = await getDocs(q);
+        if (snap.empty) {
+          setLoading(false);
+          Alert.alert("Login failed", "Username not found.");
+          return;
+        }
+        const userDoc = snap.docs[0];
+        const userData = userDoc.data() as any;
+        // we stored personalEmail when signing up
+        emailToUse = userData.personalEmail;
+        if (!emailToUse) {
+          setLoading(false);
+          Alert.alert(
+            "Login failed",
+            "User record missing email. Please contact support."
+          );
+          return;
+        }
       }
+
+      await signInWithEmailAndPassword(auth, emailToUse, password);
+      setLoading(false);
+      Alert.alert("Success", "Logged in successfully!");
+      navigation.replace("Home");
     } catch (error: any) {
+      setLoading(false);
       Alert.alert("Authentication Error", error.message);
     }
   };
@@ -61,10 +95,10 @@ function AuthScreen({ navigation }: any) {
         <Text style={styles.subtitle}>Your hostel marketplace</Text>
 
         <TextInput
-          placeholder="Email address"
+          placeholder="Email or username"
           placeholderTextColor="#9ca3af"
-          value={email}
-          onChangeText={setEmail}
+          value={identifier}
+          onChangeText={setIdentifier}
           style={styles.authInput}
           autoCapitalize="none"
         />
@@ -79,8 +113,8 @@ function AuthScreen({ navigation }: any) {
 
         <View style={{ marginTop: 10 }}>
           <Button
-            title={isLogin ? "Log in" : "Sign up"}
-            onPress={handleAuth}
+            title={loading ? "Logging in..." : "Log in"}
+            onPress={loading ? undefined : handleAuth}
             color="#10b981"
           />
         </View>

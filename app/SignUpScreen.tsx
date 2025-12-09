@@ -1,5 +1,13 @@
 // app/SignUpScreen.tsx
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import React, { useState } from "react";
 import {
   Alert,
@@ -10,18 +18,23 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { auth } from "../firebaseConfig";
+import { auth, db } from "../firebaseConfig";
 
 export default function SignUpScreen({ navigation }: any) {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
   const [personalEmail, setPersonalEmail] = useState("");
   const [collegeEmail, setCollegeEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
     if (
-      !name ||
+      !firstName ||
+      !lastName ||
+      !username ||
       !personalEmail ||
       !collegeEmail ||
       !password ||
@@ -35,12 +48,47 @@ export default function SignUpScreen({ navigation }: any) {
       return;
     }
 
+    setLoading(true);
     try {
-      // Use personalEmail (or collegeEmail) as auth email; you can change this
-      await createUserWithEmailAndPassword(auth, personalEmail, password);
+      // 1) check username uniqueness
+      const q = query(
+        collection(db, "users"),
+        where("username", "==", username.trim().toLowerCase())
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        setLoading(false);
+        Alert.alert("Username taken", "Please choose another username.");
+        return;
+      }
+
+      // 2) create auth user
+      const cred = await createUserWithEmailAndPassword(
+        auth,
+        personalEmail,
+        password
+      );
+      const user = cred.user;
+
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
+      // 3) create user profile document in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        fullName,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        username: username.trim().toLowerCase(),
+        personalEmail,
+        collegeEmail,
+        createdAt: new Date(),
+      });
+
+      setLoading(false);
       Alert.alert("Success", "Account created! Please log in.");
       navigation.replace("Auth");
     } catch (e: any) {
+      setLoading(false);
       Alert.alert("Sign up error", e.message);
     }
   };
@@ -55,13 +103,32 @@ export default function SignUpScreen({ navigation }: any) {
           <Text style={styles.appName}>HostelX</Text>
           <Text style={styles.subtitle}>Create your account</Text>
 
+          <View style={styles.row}>
+            <TextInput
+              placeholder="First name"
+              placeholderTextColor="#9ca3af"
+              value={firstName}
+              onChangeText={setFirstName}
+              style={[styles.input, { flex: 1, marginRight: 6 }]}
+            />
+            <TextInput
+              placeholder="Last name"
+              placeholderTextColor="#9ca3af"
+              value={lastName}
+              onChangeText={setLastName}
+              style={[styles.input, { flex: 1, marginLeft: 6 }]}
+            />
+          </View>
+
           <TextInput
-            placeholder="Full name"
+            placeholder="Username"
             placeholderTextColor="#9ca3af"
-            value={name}
-            onChangeText={setName}
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
             style={styles.input}
           />
+
           <TextInput
             placeholder="Personal email"
             placeholderTextColor="#9ca3af"
@@ -97,8 +164,13 @@ export default function SignUpScreen({ navigation }: any) {
             style={styles.input}
           />
 
-          <Pressable style={styles.primaryButton} onPress={handleSignUp}>
-            <Text style={styles.primaryButtonText}>Sign up</Text>
+          <Pressable
+            style={[styles.primaryButton, loading && { opacity: 0.7 }]}
+            onPress={loading ? undefined : handleSignUp}
+          >
+            <Text style={styles.primaryButtonText}>
+              {loading ? "Signing up..." : "Sign up"}
+            </Text>
           </Pressable>
 
           <Pressable
@@ -151,6 +223,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6b7280",
     marginBottom: 24,
+  },
+  row: {
+    flexDirection: "row",
+    width: "100%",
+    marginBottom: 12,
   },
   input: {
     width: "100%",
