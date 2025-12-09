@@ -6,6 +6,7 @@ import { collection, onSnapshot, query, where, orderBy } from "firebase/firestor
 export default function ChatsScreen({ navigation }: any) {
     const [conversations, setConversations] = useState<any[]>([]);
 
+
     useEffect(() => {
         const uid = auth.currentUser?.uid;
         if (!uid) return;
@@ -24,21 +25,64 @@ export default function ChatsScreen({ navigation }: any) {
 
         return () => unsub();
     }, []);
-
-
+    const uid = auth.currentUser?.uid;
     return (
         <View style={styles.screen}>
+
             <Text style={styles.title}>Chats</Text>
             <ScrollView>
-                {conversations.map((c) => (
-                    <Pressable
-                        key={c.id}
-                        style={styles.card}
-                        onPress={() => navigation.navigate("ChatRoom", { conversation: c })}
-                    >
-                        <Text>{c.postId || c.requestId}</Text>
-                    </Pressable>
-                ))}
+                {conversations.map((c) => {
+                    const uid = auth.currentUser?.uid;
+                    const otherUserId = c.participantIds.find((id: string) => id !== uid);
+                    const myUnread = c.unreadCounts?.[uid] || 0;
+
+                    return (
+                        <Pressable
+                            key={c.id}
+                            style={styles.card}
+                            onPress={() => navigation.navigate("ChatRoom", { conversation: c })}
+                        >
+                            {/* Top row: post title + unread dot */}
+                            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                                <Text style={{ fontWeight: "600", fontSize: 15 }}>
+                                    {c.postTitle || "Chat"}
+                                </Text>
+                                {myUnread > 0 && (
+                                    <View
+                                        style={{
+                                            minWidth: 20,
+                                            paddingHorizontal: 6,
+                                            paddingVertical: 2,
+                                            borderRadius: 999,
+                                            backgroundColor: "#10b981",
+                                            alignItems: "center",
+                                        }}
+                                    >
+                                        <Text style={{ color: "#fff", fontSize: 11 }}>{myUnread}</Text>
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* Other user */}
+                            <Text style={{ color: "#6b7280", marginTop: 2 }} numberOfLines={1}>
+                                With: {otherUserId}
+                            </Text>
+
+                            {/* Last message */}
+                            {c.lastMessage && (
+                                <Text
+                                    style={{ color: "#9ca3af", marginTop: 4, fontSize: 13 }}
+                                    numberOfLines={1}
+                                >
+                                    {c.lastMessage}
+                                </Text>
+                            )}
+                        </Pressable>
+                    );
+                })}
+
+
+
 
             </ScrollView>
         </View>

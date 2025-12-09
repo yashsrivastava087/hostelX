@@ -79,12 +79,15 @@ export default function RequestsScreen() {
         participantIds: [request.postOwnerId, request.requesterId],
         postId: request.postId,
         requestId: request.id,
+        postTitle: request.postTitle || "Chat",
         status: "active",
         createdAt: serverTimestamp(),
         lastMessage: null,
         lastMessageAt: null,
       });
     }
+
+
   };
 
   const list = mode === "incoming" ? incoming : outgoing;

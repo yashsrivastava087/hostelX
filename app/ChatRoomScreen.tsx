@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../firebaseConfig";
 import { TextInput } from "react-native";
+import { updateDoc, doc } from "firebase/firestore";
 import { ScrollView } from "react-native";
 
 
@@ -15,6 +16,22 @@ export default function ChatRoomScreen() {
     console.log("ChatRoom for:", conversationId);
     const [messages, setMessages] = useState<any[]>([]);
     const [text, setText] = useState("");
+    const uid = auth.currentUser?.uid;
+    const otherUserId = conversation.participantIds.find((id: string) => id !== uid);
+
+    
+    useEffect(() => {
+        const markRead = async () => {
+            if (!uid) return;
+            const convoRef = doc(db, "conversations", conversationId);
+            await updateDoc(convoRef, {
+                [`unreadCounts.${uid}`]: 0,
+            });
+        };
+        markRead();
+    }, [conversationId, uid]);
+
+
 
     useEffect(() => {
         const q = query(
@@ -31,7 +48,9 @@ export default function ChatRoomScreen() {
         return () => unsub();
     }, [conversationId]);
 
-    const uid = auth.currentUser?.uid;
+    
+
+
 
     return (
         <View style={styles.screen}>
@@ -72,13 +91,30 @@ export default function ChatRoomScreen() {
                     onPress={async () => {
                         const uid = auth.currentUser?.uid;
                         if (!uid || !text.trim()) return;
-                        await addDoc(collection(db, "conversations", conversationId, "messages"), {
-                            text: text.trim(),
-                            senderId: uid,
-                            createdAt: serverTimestamp(),
+
+                        const messageText = text.trim();
+
+                        await addDoc(
+                            collection(db, "conversations", conversationId, "messages"),
+                            {
+                                text: messageText,
+                                senderId: uid,
+                                createdAt: serverTimestamp(),
+                            }
+                        );
+
+                        const convoRef = doc(db, "conversations", conversationId);
+
+                        await updateDoc(convoRef, {
+                            lastMessage: messageText,
+                            lastMessageAt: serverTimestamp(),
+                            [`unreadCounts.${uid}`]: 0,
+                            ...(otherUserId && { [`unreadCounts.${otherUserId}`]: (conversation.unreadCounts?.[otherUserId] || 0) + 1 }),
                         });
+
                         setText("");
                     }}
+
                 >
                     <Text style={{ color: "#fff" }}>Send</Text>
                 </Pressable>
@@ -89,6 +125,6 @@ export default function ChatRoomScreen() {
 }
 
 const styles = StyleSheet.create({
-    screen: { flex: 1, padding: 20, backgroundColor: "#f5f5f5" },
+    screen: { bottom: 50, flex: 1, padding: 20, backgroundColor: "#f5f5f5" },
     title: { fontSize: 20, fontWeight: "700", marginBottom: 8 },
 });
