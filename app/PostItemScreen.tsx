@@ -11,11 +11,13 @@ import { useState } from "react";
 import {
   Alert,
   Image,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import {
@@ -23,10 +25,10 @@ import {
   CLOUDINARY_UPLOAD_PRESET,
 } from "../cloudinaryConfig";
 import { auth, db } from "../firebaseConfig";
-import { Keyboard, TouchableWithoutFeedback } from "react-native";
 
 export default function PostItemScreen({ route, navigation }: any) {
   const [durationMinutes, setDurationMinutes] = useState<30 | 60 | 120>(30);
+  const [submitting, setSubmitting] = useState(false);
 
   const editingPost = route?.params?.post;
   const [images, setImages] = useState<string[]>(editingPost?.imageUrls ?? []);
@@ -68,6 +70,8 @@ export default function PostItemScreen({ route, navigation }: any) {
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
+
     if (!title.trim() || !description.trim()) {
       Alert.alert("Missing info", "Title and description are required.");
       return;
@@ -84,10 +88,11 @@ export default function PostItemScreen({ route, navigation }: any) {
     }
 
     try {
+      setSubmitting(true);
+
       const imageUrls: string[] = [];
 
       for (const uri of images) {
-        // keep existing Cloudinary URLs when editing
         if (uri.startsWith("https://res.cloudinary.com")) {
           imageUrls.push(uri);
           continue;
@@ -150,176 +155,186 @@ export default function PostItemScreen({ route, navigation }: any) {
     } catch (e: any) {
       console.log("Upload error", e);
       Alert.alert("Error", e.message);
+      setSubmitting(false);
     }
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-    <View style={styles.container}>
-      <Text style={styles.headerText}>
-        {editingPost ? "Edit Post" : "Post New Request"}
-      </Text>
+      <View style={styles.container}>
+        <Text style={styles.headerText}>
+          {editingPost ? "Edit Post" : "Post New Request"}
+        </Text>
 
-      {/* Need / Sell toggle */}
-      <View style={styles.segmentContainer}>
-        <Pressable
-          onPress={() => setType("need")}
-          style={[
-            styles.segmentButton,
-            type === "need" && styles.segmentButtonActive,
-          ]}
-        >
-          <Text
+        {/* Need / Sell toggle */}
+        <View style={styles.segmentContainer}>
+          <Pressable
+            onPress={() => setType("need")}
             style={[
-              styles.segmentText,
-              type === "need" && styles.segmentTextActive,
+              styles.segmentButton,
+              type === "need" && styles.segmentButtonActive,
             ]}
           >
-            Need
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setType("sell")}
-          style={[
-            styles.segmentButton,
-            type === "sell" && styles.segmentButtonActive,
-          ]}
-        >
-          <Text
+            <Text
+              style={[
+                styles.segmentText,
+                type === "need" && styles.segmentTextActive,
+              ]}
+            >
+              Need
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setType("sell")}
             style={[
-              styles.segmentText,
-              type === "sell" && styles.segmentTextActive,
+              styles.segmentButton,
+              type === "sell" && styles.segmentButtonActive,
             ]}
           >
-            Sell
-          </Text>
-        </Pressable>
-      </View>
+            <Text
+              style={[
+                styles.segmentText,
+                type === "sell" && styles.segmentTextActive,
+              ]}
+            >
+              Sell
+            </Text>
+          </Pressable>
+        </View>
 
-      {/* Title */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Title</Text>
-        <TextInput
-          placeholder="What do you need or want to sell?"
-          placeholderTextColor="#9ca3af"
-          value={title}
-          onChangeText={setTitle}
-          style={styles.input}
-        />
-      </View>
-
-      {/* Description */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          placeholder="Add details so others know exactly what you mean"
-          placeholderTextColor="#9ca3af"
-          value={description}
-          onChangeText={setDescription}
-          style={[styles.input, styles.textArea]}
-          multiline
-        />
-      </View>
-
-      {/* Price */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Price (optional)</Text>
-        <View style={styles.priceRow}>
-          <Text style={styles.currency}>₹</Text>
+        {/* Title */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>Title</Text>
           <TextInput
-            placeholder="0"
+            placeholder="What do you need or want to sell?"
             placeholderTextColor="#9ca3af"
-            value={price}
-            onChangeText={setPrice}
-            style={[styles.input, styles.priceInput]}
-            keyboardType="numeric"
+            value={title}
+            onChangeText={setTitle}
+            style={styles.input}
           />
         </View>
-      </View>
 
-      {/* Duration */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Expires in</Text>
-        <View style={styles.durationRow}>
-          <Pressable
-            onPress={() => setDurationMinutes(30)}
-            style={[
-              styles.durationPill,
-              durationMinutes === 30 && styles.durationPillActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.durationText,
-                durationMinutes === 30 && styles.durationTextActive,
-              ]}
-            >
-              30 min
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setDurationMinutes(60)}
-            style={[
-              styles.durationPill,
-              durationMinutes === 60 && styles.durationPillActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.durationText,
-                durationMinutes === 60 && styles.durationTextActive,
-              ]}
-            >
-              1 hr
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setDurationMinutes(120)}
-            style={[
-              styles.durationPill,
-              durationMinutes === 120 && styles.durationPillActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.durationText,
-                durationMinutes === 120 && styles.durationTextActive,
-              ]}
-            >
-              2 hr
-            </Text>
-          </Pressable>
+        {/* Description */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            placeholder="Add details so others know exactly what you mean"
+            placeholderTextColor="#9ca3af"
+            value={description}
+            onChangeText={setDescription}
+            style={[styles.input, styles.textArea]}
+            multiline
+          />
         </View>
-      </View>
 
-      {/* Images */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Images (up to 3)</Text>
-        <Pressable style={styles.addImageButton} onPress={handlePickImages}>
-          <Text style={styles.addImageText}>+ Add images</Text>
-        </Pressable>
-        <ScrollView horizontal style={{ marginTop: 10 }}>
-          {images.map((uri) => (
-            <View key={uri} style={styles.imageWrapper}>
-              <Image source={{ uri }} style={styles.image} />
-              <Pressable
-                style={styles.removeBadge}
-                onPress={() => handleRemoveImage(uri)}
+        {/* Price */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>Price (optional)</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.currency}>₹</Text>
+            <TextInput
+              placeholder="0"
+              placeholderTextColor="#9ca3af"
+              value={price}
+              onChangeText={setPrice}
+              style={[styles.input, styles.priceInput]}
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+
+        {/* Duration */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>Expires in</Text>
+          <View style={styles.durationRow}>
+            <Pressable
+              onPress={() => setDurationMinutes(30)}
+              style={[
+                styles.durationPill,
+                durationMinutes === 30 && styles.durationPillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.durationText,
+                  durationMinutes === 30 && styles.durationTextActive,
+                ]}
               >
-                <Text style={styles.removeBadgeText}>×</Text>
-              </Pressable>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
+                30 min
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setDurationMinutes(60)}
+              style={[
+                styles.durationPill,
+                durationMinutes === 60 && styles.durationPillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.durationText,
+                  durationMinutes === 60 && styles.durationTextActive,
+                ]}
+              >
+                1 hr
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setDurationMinutes(120)}
+              style={[
+                styles.durationPill,
+                durationMinutes === 120 && styles.durationPillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.durationText,
+                  durationMinutes === 120 && styles.durationTextActive,
+                ]}
+              >
+                2 hr
+              </Text>
+            </Pressable>
+          </View>
+        </View>
 
-      {/* Submit */}
-      <Pressable style={styles.primaryButton} onPress={handleSubmit}>
-        <Text style={styles.primaryButtonText}>
-          {editingPost ? "Save Changes" : "Post Item"}
-        </Text>
-      </Pressable>
-    </View>
+        {/* Images */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>Images (up to 3)</Text>
+          <Pressable style={styles.addImageButton} onPress={handlePickImages}>
+            <Text style={styles.addImageText}>+ Add images</Text>
+          </Pressable>
+          <ScrollView horizontal style={{ marginTop: 10 }}>
+            {images.map((uri) => (
+              <View key={uri} style={styles.imageWrapper}>
+                <Image source={{ uri }} style={styles.image} />
+                <Pressable
+                  style={styles.removeBadge}
+                  onPress={() => handleRemoveImage(uri)}
+                >
+                  <Text style={styles.removeBadgeText}>×</Text>
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Submit */}
+        <Pressable
+          style={[styles.primaryButton, submitting && { opacity: 0.7 }]}
+          onPress={handleSubmit}
+        >
+          <Text style={styles.primaryButtonText}>
+            {submitting
+              ? editingPost
+                ? "Saving..."
+                : "Posting..."
+              : editingPost
+              ? "Save Changes"
+              : "Post Item"}
+          </Text>
+        </Pressable>
+      </View>
     </TouchableWithoutFeedback>
   );
 }
