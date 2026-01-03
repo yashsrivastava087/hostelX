@@ -30,6 +30,8 @@ export default function SignUpScreen({ navigation }: any) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+
+
   const handleSignUp = async () => {
     if (
       !firstName ||
@@ -48,6 +50,16 @@ export default function SignUpScreen({ navigation }: any) {
       return;
     }
 
+    // ✅ move this INSIDE handleSignUp
+    const trimmedCollege = collegeEmail.trim().toLowerCase();
+    if (!trimmedCollege.endsWith(".ac.in")) {
+      Alert.alert(
+        "College email required",
+        "Please enter your official college email ending with .ac.in."
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       // 1) check username uniqueness
@@ -62,10 +74,10 @@ export default function SignUpScreen({ navigation }: any) {
         return;
       }
 
-      // 2) create auth user
+      // 2) create auth user WITH COLLEGE EMAIL
       const cred = await createUserWithEmailAndPassword(
         auth,
-        personalEmail,
+        trimmedCollege,
         password
       );
       const user = cred.user;
@@ -80,7 +92,7 @@ export default function SignUpScreen({ navigation }: any) {
         lastName: lastName.trim(),
         username: username.trim().toLowerCase(),
         personalEmail,
-        collegeEmail,
+        collegeEmail: trimmedCollege,
         createdAt: new Date(),
       });
 
