@@ -48,17 +48,15 @@ function AuthScreen({ navigation }: any) {
     setLoading(true);
     try {
       let emailToUse = identifier.trim();
-
-      // simple heuristic: if no "@" present, treat as username
       const looksLikeUsername = !emailToUse.includes("@");
 
       if (looksLikeUsername) {
-        // find user by username in Firestore
-        const q = query(
+        // username → resolve to stored email
+        const qUser = query(
           collection(db, "users"),
           where("username", "==", emailToUse.toLowerCase())
         );
-        const snap = await getDocs(q);
+        const snap = await getDocs(qUser);
         if (snap.empty) {
           setLoading(false);
           Alert.alert("Login failed", "Username not found.");
@@ -66,8 +64,9 @@ function AuthScreen({ navigation }: any) {
         }
         const userDoc = snap.docs[0];
         const userData = userDoc.data() as any;
-        // we stored personalEmail when signing up
-        emailToUse = userData.personalEmail;
+
+        emailToUse =
+          userData.collegeEmail || userData.personalEmail || "";
         if (!emailToUse) {
           setLoading(false);
           Alert.alert(
@@ -77,6 +76,7 @@ function AuthScreen({ navigation }: any) {
           return;
         }
       }
+      // else: identifier is an email (college or personal) – use it directly.
 
       await signInWithEmailAndPassword(auth, emailToUse, password);
       setLoading(false);
@@ -87,6 +87,7 @@ function AuthScreen({ navigation }: any) {
       Alert.alert("Authentication Error", error.message);
     }
   };
+
 
   return (
     <View style={styles.authContainer}>

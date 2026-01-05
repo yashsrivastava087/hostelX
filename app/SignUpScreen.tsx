@@ -30,9 +30,61 @@ export default function SignUpScreen({ navigation }: any) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [otp, setOtp] = useState("");
+  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
+  const [otpSent, setOtpSent] = useState(false);
 
+  // STEP 1: send OTP to college email (simulated via Alert for now)
+  const handleSendOtp = async () => {
+    if (
+      !firstName ||
+      !lastName ||
+      !username ||
+      !personalEmail ||
+      !collegeEmail ||
+      !password ||
+      !confirmPassword
+    ) {
+      Alert.alert("Missing info", "Please fill in all fields first.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert("Password mismatch", "Passwords do not match.");
+      return;
+    }
 
-  const handleSignUp = async () => {
+    const trimmedCollege = collegeEmail.trim().toLowerCase();
+    if (!trimmedCollege.endsWith(".ac.in")) {
+      Alert.alert(
+        "College email required",
+        "Please enter your official college email ending with .ac.in."
+      );
+      return;
+    }
+
+    // generate 6‑digit OTP
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(code);
+    setOtpSent(true);
+
+    // TEMP: show OTP directly; later replace with real email sending
+    Alert.alert(
+      "OTP sent",
+      `For now, your OTP is ${code}. In production this will be emailed to your college address.`
+    );
+  };
+
+  // STEP 2: verify OTP and create account
+  const handleVerifyAndSignUp = async () => {
+    if (!otpSent || !generatedOtp) {
+      Alert.alert("OTP required", "Please request an OTP first.");
+      return;
+    }
+    if (otp.trim() !== generatedOtp) {
+      Alert.alert("Invalid OTP", "The code you entered is incorrect.");
+      return;
+    }
+
     if (
       !firstName ||
       !lastName ||
@@ -50,7 +102,6 @@ export default function SignUpScreen({ navigation }: any) {
       return;
     }
 
-    // ✅ move this INSIDE handleSignUp
     const trimmedCollege = collegeEmail.trim().toLowerCase();
     if (!trimmedCollege.endsWith(".ac.in")) {
       Alert.alert(
@@ -63,18 +114,18 @@ export default function SignUpScreen({ navigation }: any) {
     setLoading(true);
     try {
       // 1) check username uniqueness
-      const q = query(
+      const qUser = query(
         collection(db, "users"),
         where("username", "==", username.trim().toLowerCase())
       );
-      const snap = await getDocs(q);
+      const snap = await getDocs(qUser);
       if (!snap.empty) {
         setLoading(false);
         Alert.alert("Username taken", "Please choose another username.");
         return;
       }
 
-      // 2) create auth user WITH COLLEGE EMAIL
+      // 2) create auth user WITH college email
       const cred = await createUserWithEmailAndPassword(
         auth,
         trimmedCollege,
@@ -94,6 +145,7 @@ export default function SignUpScreen({ navigation }: any) {
         personalEmail,
         collegeEmail: trimmedCollege,
         createdAt: new Date(),
+        isCollegeVerified: true,
       });
 
       setLoading(false);
@@ -176,12 +228,35 @@ export default function SignUpScreen({ navigation }: any) {
             style={styles.input}
           />
 
+          {otpSent && (
+            <TextInput
+              placeholder="Enter OTP sent to your college email"
+              placeholderTextColor="#9ca3af"
+              value={otp}
+              onChangeText={setOtp}
+              keyboardType="number-pad"
+              style={styles.input}
+            />
+          )}
+
           <Pressable
             style={[styles.primaryButton, loading && { opacity: 0.7 }]}
-            onPress={loading ? undefined : handleSignUp}
+            onPress={
+              loading
+                ? undefined
+                : otpSent
+                ? handleVerifyAndSignUp
+                : handleSendOtp
+            }
           >
             <Text style={styles.primaryButtonText}>
-              {loading ? "Signing up..." : "Sign up"}
+              {loading
+                ? otpSent
+                  ? "Creating account..."
+                  : "Sending OTP..."
+                : otpSent
+                ? "Verify OTP & Sign up"
+                : "Send OTP"}
             </Text>
           </Pressable>
 
