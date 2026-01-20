@@ -62,19 +62,16 @@ export default function SignUpScreen({ navigation }: any) {
       return;
     }
 
-    // generate 6‑digit OTP
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOtp(code);
     setOtpSent(true);
 
-    // TEMP: show OTP directly; later replace with real email sending
     Alert.alert(
       "OTP sent",
       `For now, your OTP is ${code}. In production this will be emailed to your college address.`
     );
   };
 
-  // STEP 2: verify OTP and create account
   const handleVerifyAndSignUp = async () => {
     if (!otpSent || !generatedOtp) {
       Alert.alert("OTP required", "Please request an OTP first.");
@@ -113,7 +110,6 @@ export default function SignUpScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      // 1) check username uniqueness
       const qUser = query(
         collection(db, "users"),
         where("username", "==", username.trim().toLowerCase())
@@ -125,7 +121,6 @@ export default function SignUpScreen({ navigation }: any) {
         return;
       }
 
-      // 2) create auth user WITH college email
       const cred = await createUserWithEmailAndPassword(
         auth,
         trimmedCollege,
@@ -135,7 +130,6 @@ export default function SignUpScreen({ navigation }: any) {
 
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
-      // 3) create user profile document in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         fullName,

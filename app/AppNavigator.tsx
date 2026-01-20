@@ -6,20 +6,24 @@ import {
   signOut,
 } from "firebase/auth";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import EditProfileScreen from "./EditProfileScreen";
+
 import SignUpScreen from "./SignUpScreen";
 // at top
-import { getDocs, where } from "firebase/firestore";
+import { doc, getDoc, getDocs, where } from "firebase/firestore";
 
 import React, { useEffect, useState } from "react";
 import {
   Alert,
   Button,
   Image,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { auth, db } from "../firebaseConfig";
@@ -90,58 +94,75 @@ function AuthScreen({ navigation }: any) {
 
 
   return (
-    <View style={styles.authContainer}>
-      <View style={styles.authCard}>
-        <Text style={styles.appName}>HostelX</Text>
-        <Text style={styles.subtitle}>Your hostel marketplace</Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.authContainer}>
+        <View style={styles.authCard}>
+          <Text style={styles.appName}>HostelX</Text>
+          <Text style={styles.subtitle}>Your hostel marketplace</Text>
 
-        <TextInput
-          placeholder="Email or username"
-          placeholderTextColor="#9ca3af"
-          value={identifier}
-          onChangeText={setIdentifier}
-          style={styles.authInput}
-          autoCapitalize="none"
-        />
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#9ca3af"
-          value={password}
-          onChangeText={setPassword}
-          style={styles.authInput}
-          secureTextEntry
-        />
-
-        <View style={{ marginTop: 10 }}>
-          <Button
-            title={loading ? "Logging in..." : "Log in"}
-            onPress={loading ? undefined : handleAuth}
-            color="#10b981"
+          <TextInput
+            placeholder="Email or username"
+            placeholderTextColor="#9ca3af"
+            value={identifier}
+            onChangeText={setIdentifier}
+            style={styles.authInput}
+            autoCapitalize="none"
           />
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#9ca3af"
+            value={password}
+            onChangeText={setPassword}
+            style={styles.authInput}
+            secureTextEntry
+          />
+
+          <View style={{ marginTop: 10 }}>
+            <Button
+              title={loading ? "Logging in..." : "Log in"}
+              onPress={loading ? undefined : handleAuth}
+              color="#10b981"
+            />
+          </View>
+
+          <Pressable
+            onPress={() => navigation.navigate("SignUp")}
+            style={{ marginTop: 16 }}
+          >
+            <Text style={styles.switchText}>Create a new account</Text>
+          </Pressable>
         </View>
 
-        <Pressable
-          onPress={() => navigation.navigate("SignUp")}
-          style={{ marginTop: 16 }}
-        >
-          <Text style={styles.switchText}>Create a new account</Text>
-        </Pressable>
+        <Text style={styles.footerText}>
+          Buy & sell within your hostel community
+        </Text>
       </View>
-
-      <Text style={styles.footerText}>
-        Buy & sell within your hostel community
-      </Text>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 
 function HomeScreen({ navigation }: any) {
   const [posts, setPosts] = useState<any[]>([]);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "need" | "sell">("all");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"time" | "price">("time");
   const [nowMs, setNowMs] = useState(Date.now());
+
+ useEffect(() => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+
+  (async () => {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (snap.exists()) {
+      setUserProfile(snap.data());
+    }
+  })();
+}, []);
+
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -154,7 +175,6 @@ function HomeScreen({ navigation }: any) {
     return () => unsub();
   }, []);
 
-  // ticking clock for timers
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(id);
@@ -182,7 +202,6 @@ function HomeScreen({ navigation }: any) {
   };
 
   const filtered = posts
-    // hide expired
     .filter((p) => {
       const expMs = p.expiresAt?.toMillis
         ? p.expiresAt.toMillis()
@@ -201,122 +220,309 @@ function HomeScreen({ navigation }: any) {
     });
 
   const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === "time") {
-      // already newest-first from Firestore
-      return 0;
-    }
+    if (sortBy === "time") return 0;
     const pa = Number(a.price) || 0;
     const pb = Number(b.price) || 0;
-    return pa - pb; // low to high
+    return pa - pb;
   });
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={styles.container}>
-        <View style={{ marginBottom: 16 }}>
-          {/* Top row: HostelX + right icons */}
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <Text style={{ fontSize: 24, fontWeight: "700", color: "#111827" }}>
-              HostelX
-            </Text>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Pressable
-                onPress={() => navigation.navigate("Requests")}
-                style={{
-                  padding: 8,
-                  borderRadius: 999,
-                  backgroundColor: "#f3f4f6",
-                  marginRight: 8,
-                }}
-              >
-                <Text>📩</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => navigation.navigate("Chats")}
-                style={{
-                  padding: 8,
-                  borderRadius: 999,
-                  backgroundColor: "#f3f4f6",
-                  marginRight: 8,
-                }}
-              >
-                <Text>💬</Text>
-              </Pressable>
-
-              <Pressable onPress={handleLogout}>
-                <Text style={{ fontSize: 18 }}>↩︎</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Search */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "#f3f4f6",
-              borderRadius: 999,
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              marginBottom: 12,
-            }}
-          >
-            <Text style={{ marginRight: 8, fontSize: 16 }}>🔍</Text>
-            <TextInput
-              placeholder="Search items..."
-              placeholderTextColor="#9ca3af"
-              value={search}
-              onChangeText={setSearch}
-              style={{ flex: 1, fontSize: 14 }}
-            />
-          </View>
-
-          {/* Filter row */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <Pressable
-              onPress={() => navigation.navigate("MyPosts")}
+    <TouchableWithoutFeedback
+      onPress={() => {
+        Keyboard.dismiss();
+        if (profileMenuOpen) setProfileMenuOpen(false);
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        <View style={styles.container}>
+          <View style={{ marginBottom: 16 }}>
+            {/* Top row: HostelX + right icons */}
+            <View
               style={{
-                paddingVertical: 8,
-                paddingHorizontal: 14,
-                borderRadius: 999,
-                backgroundColor: "#ffffff",
-                borderWidth: 1,
-                borderColor: "#e5e7eb",
-                marginRight: 8,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+                zIndex: 10,
               }}
             >
               <Text
-                style={{ fontSize: 13, fontWeight: "500", color: "#111827" }}
+                style={{ fontSize: 24, fontWeight: "700", color: "#111827" }}
               >
-                My Posts
+                HostelX
               </Text>
-            </Pressable>
 
-            {(["all", "need", "sell"] as const).map((key) => (
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                {/* Chat icon */}
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    navigation.navigate("Chats");
+                  }}
+                  style={{
+                    padding: 8,
+                    borderRadius: 999,
+                    backgroundColor: "#f3f4f6",
+                    marginRight: 8,
+                  }}
+                >
+                  <Text>💬</Text>
+                </Pressable>
+
+                {/* Profile avatar + dropdown */}
+                <View style={{ position: "relative", zIndex: 20 }}>
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setProfileMenuOpen((prev) => !prev);
+                    }}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: "#10b981",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ color: "#fff", fontWeight: "700" }}>{(userProfile?.fullName || "User").charAt(0).toUpperCase()}</Text>
+                  </Pressable>
+
+                  {profileMenuOpen && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: 48,
+                        right: 0,
+                        backgroundColor: "#ffffff",
+                        borderRadius: 20,
+                        width: 260,
+                        shadowColor: "#000",
+                        shadowOpacity: 0.18,
+                        shadowRadius: 16,
+                        shadowOffset: { width: 0, height: 6 },
+                        elevation: 14,
+                        zIndex: 30,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {/* Header */}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          paddingHorizontal: 16,
+                          paddingVertical: 14,
+                          borderBottomWidth: 1,
+                          borderBottomColor: "#e5e7eb",
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: "#10b981",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginRight: 12,
+                          }}
+                        >
+                          <Text
+                            style={{ color: "#fff", fontWeight: "700" }}
+                          >
+                            {(userProfile?.fullName || "User").charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        <View>
+                          <Text
+                            style={{
+                              fontSize: 15,
+                              fontWeight: "600",
+                              color: "#111827",
+                            }}
+                          >
+                            {userProfile?.fullName || "User"}
+                          </Text>
+                          <Text
+                            style={{ fontSize: 13, color: "#6b7280" }}
+                          >
+                            {userProfile?.collegeEmail || userProfile?.personalEmail || ""}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Edit Profile */}
+                      <Pressable
+                        onPress={() => {
+                          setProfileMenuOpen(false);
+                          navigation.navigate("EditProfile");
+                        }}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          paddingHorizontal: 16,
+                          paddingVertical: 10,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
+                            backgroundColor: "#ecfdf5",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginRight: 12,
+                          }}
+                        >
+                          <Text style={{ fontSize: 16 }}>👤</Text>
+                        </View>
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            color: "#111827",
+                            flex: 1,
+                          }}
+                        >
+                          Edit Profile
+                        </Text>
+                        <Text style={{ fontSize: 16, color: "#9ca3af" }}>
+                          ›
+                        </Text>
+                      </Pressable>
+
+                      {/* Requests */}
+                      <Pressable
+                        onPress={() => {
+                          setProfileMenuOpen(false);
+                          navigation.navigate("Requests");
+                        }}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          paddingHorizontal: 16,
+                          paddingVertical: 10,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
+                            backgroundColor: "#ecfdf5",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginRight: 12,
+                          }}
+                        >
+                          <Text style={{ fontSize: 16 }}>💬</Text>
+                        </View>
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            color: "#111827",
+                            flex: 1,
+                          }}
+                        >
+                          Requests
+                        </Text>
+                      </Pressable>
+
+                      <View
+                        style={{
+                          height: 1,
+                          backgroundColor: "#e5e7eb",
+                          marginHorizontal: 16,
+                          marginVertical: 6,
+                        }}
+                      />
+
+                      {/* Logout */}
+                      <Pressable
+                        onPress={() => {
+                          setProfileMenuOpen(false);
+                          handleLogout();
+                        }}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          paddingHorizontal: 16,
+                          paddingVertical: 10,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
+                            backgroundColor: "#fef2f2",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginRight: 12,
+                          }}
+                        >
+                          <Text
+                            style={{ fontSize: 16, color: "#dc2626" }}
+                          >
+                            ↩︎
+                          </Text>
+                        </View>
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            color: "#dc2626",
+                            fontWeight: "500",
+                          }}
+                        >
+                          Logout
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* Search */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#f3f4f6",
+                borderRadius: 999,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                marginBottom: 12,
+              }}
+            >
+              <Text style={{ marginRight: 8, fontSize: 16 }}>🔍</Text>
+              <TextInput
+                placeholder="Search items..."
+                placeholderTextColor="#9ca3af"
+                value={search}
+                onChangeText={setSearch}
+                style={{ flex: 1, fontSize: 14 }}
+              />
+            </View>
+
+            {/* Filter row */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
               <Pressable
-                key={key}
-                onPress={() => setFilter(key)}
+                onPress={() => navigation.navigate("MyPosts")}
                 style={{
                   paddingVertical: 8,
                   paddingHorizontal: 14,
                   borderRadius: 999,
-                  backgroundColor: filter === key ? "#10b981" : "#ffffff",
+                  backgroundColor: "#ffffff",
                   borderWidth: 1,
-                  borderColor: filter === key ? "#10b981" : "#e5e7eb",
+                  borderColor: "#e5e7eb",
                   marginRight: 8,
                 }}
               >
@@ -324,215 +530,252 @@ function HomeScreen({ navigation }: any) {
                   style={{
                     fontSize: 13,
                     fontWeight: "500",
-                    color: filter === key ? "#ffffff" : "#4b5563",
+                    color: "#111827",
                   }}
                 >
-                  {key === "all" ? "All" : key === "need" ? "Need" : "Sell"}
+                  My Posts
                 </Text>
               </Pressable>
-            ))}
-          </View>
 
-          {/* Sort row */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <Text style={{ marginRight: 4 }}>↕︎</Text>
-            <Pressable onPress={() => setSortBy("time")}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: sortBy === "time" ? "600" : "400",
-                  color: sortBy === "time" ? "#10b981" : "#6b7280",
-                }}
-              >
-                Latest
-              </Text>
-            </Pressable>
-            <Text style={{ marginHorizontal: 6, color: "#9ca3af" }}>•</Text>
-            <Pressable onPress={() => setSortBy("price")}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: sortBy === "price" ? "600" : "400",
-                  color: sortBy === "price" ? "#10b981" : "#6b7280",
-                }}
-              >
-                Price
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {loading ? (
-          <Text style={{ marginTop: 20 }}>Loading posts...</Text>
-        ) : (
-          <ScrollView style={{ marginTop: 20 }}>
-            {sorted.map((p) => {
-              const remainingText = getRemainingText(p);
-
-              return (
+              {(["all", "need", "sell"] as const).map((key) => (
                 <Pressable
-                  key={p.id}
-                  onPress={() => navigation.navigate("PostDetail", { post: p })}
+                  key={key}
+                  onPress={() => setFilter(key)}
                   style={{
-                    marginBottom: 16,
-                    padding: 16,
-                    borderRadius: 20,
-                    backgroundColor: "#fff",
-                    shadowColor: "#000",
-                    shadowOpacity: 0.05,
-                    shadowRadius: 10,
-                    shadowOffset: { width: 0, height: 4 },
-                    elevation: 3,
+                    paddingVertical: 8,
+                    paddingHorizontal: 14,
+                    borderRadius: 999,
+                    backgroundColor:
+                      filter === key ? "#10b981" : "#ffffff",
+                    borderWidth: 1,
+                    borderColor:
+                      filter === key ? "#10b981" : "#e5e7eb",
+                    marginRight: 8,
                   }}
                 >
-                  {/* Top row: badge + timer (right) */}
-                  <View
+                  <Text
                     style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 8,
+                      fontSize: 13,
+                      fontWeight: "500",
+                      color: filter === key ? "#ffffff" : "#4b5563",
+                    }}
+                  >
+                    {key === "all"
+                      ? "All"
+                      : key === "need"
+                        ? "Need"
+                        : "Sell"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Sort row */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
+              <Text style={{ marginRight: 4 }}>↕︎</Text>
+              <Pressable onPress={() => setSortBy("time")}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: sortBy === "time" ? "600" : "400",
+                    color: sortBy === "time" ? "#10b981" : "#6b7280",
+                  }}
+                >
+                  Latest
+                </Text>
+              </Pressable>
+              <Text style={{ marginHorizontal: 6, color: "#9ca3af" }}>
+                •
+              </Text>
+              <Pressable onPress={() => setSortBy("price")}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: sortBy === "price" ? "600" : "400",
+                    color: sortBy === "price" ? "#10b981" : "#6b7280",
+                  }}
+                >
+                  Price
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {loading ? (
+            <Text style={{ marginTop: 20 }}>Loading posts...</Text>
+          ) : (
+            <ScrollView style={{ marginTop: 20 }}>
+              {sorted.map((p) => {
+                const remainingText = getRemainingText(p);
+                return (
+                  <Pressable
+                    key={p.id}
+                    onPress={() =>
+                      navigation.navigate("PostDetail", { post: p })
+                    }
+                    style={{
+                      marginBottom: 16,
+                      padding: 16,
+                      borderRadius: 20,
+                      backgroundColor: "#fff",
+                      shadowColor: "#000",
+                      shadowOpacity: 0.05,
+                      shadowRadius: 10,
+                      shadowOffset: { width: 0, height: 4 },
+                      elevation: 3,
                     }}
                   >
                     <View
                       style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 4,
-                        borderRadius: 999,
-                        backgroundColor:
-                          p.type === "sell" ? "#d1fae5" : "#fef3c7",
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 8,
                       }}
                     >
+                      <View
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          borderRadius: 999,
+                          backgroundColor:
+                            p.type === "sell" ? "#d1fae5" : "#fef3c7",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: "600",
+                            color:
+                              p.type === "sell" ? "#047857" : "#b45309",
+                          }}
+                        >
+                          {p.type === "sell" ? "SELL" : "NEED"}
+                        </Text>
+                      </View>
+
+                      {remainingText ? (
+                        <Text
+                          style={{
+                            fontSize: 20,
+                            fontWeight: "bold",
+                            color:
+                              remainingText === "Expired"
+                                ? "#dc2626"
+                                : "#10b981",
+                          }}
+                        >
+                          {remainingText}
+                        </Text>
+                      ) : null}
+                    </View>
+
+                    {p.imageUrls && p.imageUrls.length > 0 && (
+                      <View style={{ marginBottom: 8 }}>
+                        <Image
+                          source={{ uri: p.imageUrls[0] }}
+                          style={{
+                            width: "100%",
+                            height: 160,
+                            borderRadius: 12,
+                            marginBottom: 8,
+                          }}
+                          resizeMode="cover"
+                        />
+                      </View>
+                    )}
+
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "700",
+                        color: "#111827",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {p.title}
+                    </Text>
+
+                    <View style={{ marginTop: 4 }}>
+                      <Text style={{ fontSize: 13, color: "#6b7280" }}>
+                        {p.description}
+                      </Text>
                       <Text
                         style={{
                           fontSize: 12,
-                          fontWeight: "600",
-                          color: p.type === "sell" ? "#047857" : "#b45309",
+                          color: "#9ca3af",
+                          marginTop: 6,
                         }}
                       >
-                        {p.type === "sell" ? "SELL" : "NEED"}
+                        {p.userEmail}
                       </Text>
                     </View>
 
-                    {remainingText ? (
-                      <Text
-                        style={{
-                          fontSize: 20,
-                          fontWeight: "bold",
-                          color:
-                            remainingText === "Expired" ? "#dc2626" : "#10b981",
-                        }}
-                      >
-                        {remainingText}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  {/* Image if available */}
-                  {p.imageUrls && p.imageUrls.length > 0 && (
-                    <View style={{ marginBottom: 8 }}>
-                      <Image
-                        source={{ uri: p.imageUrls[0] }}
-                        style={{
-                          width: "100%",
-                          height: 160,
-                          borderRadius: 12,
-                          marginBottom: 8,
-                        }}
-                        resizeMode="cover"
-                      />
-                    </View>
-                  )}
-
-                  {/* Title */}
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "700",
-                      color: "#111827",
-                      marginBottom: 4,
-                    }}
-                  >
-                    {p.title}
-                  </Text>
-
-                  {/* Description + email */}
-                  <View style={{ marginTop: 4 }}>
-                    <Text style={{ fontSize: 13, color: "#6b7280" }}>
-                      {p.description}
-                    </Text>
-                    <Text
+                    <View
                       style={{
-                        fontSize: 12,
-                        color: "#9ca3af",
-                        marginTop: 6,
+                        flexDirection: "row",
+                        justifyContent: "flex-end",
+                        marginTop: 8,
                       }}
                     >
-                      {p.userEmail}
-                    </Text>
-                  </View>
+                      {p.price ? (
+                        <Text
+                          style={{
+                            fontSize: 20,
+                            fontWeight: "700",
+                            color: "#111827",
+                          }}
+                        >
+                          ₹{p.price}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
 
-                  {/* Bottom row: price only, at right */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "flex-end",
-                      marginTop: 8,
-                    }}
-                  >
-                    {p.price ? (
-                      <Text
-                        style={{
-                          fontSize: 20,
-                          fontWeight: "700",
-                          color: "#111827",
-                        }}
-                      >
-                        ₹{p.price}
-                      </Text>
-                    ) : null}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
+        <Pressable
+          onPress={() => navigation.navigate("PostItem")}
+          style={{
+            position: "absolute",
+            bottom: 50,
+            alignSelf: "center",
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            borderRadius: 999,
+            backgroundColor: "#10b981",
+            shadowColor: "#000",
+            shadowOpacity: 0.15,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 5,
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 20, marginRight: 8 }}>
+            ＋
+          </Text>
+          <Text
+            style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
+          >
+            Post Request
+          </Text>
+        </Pressable>
       </View>
-
-      {/* Floating Post button */}
-      <Pressable
-        onPress={() => navigation.navigate("PostItem")}
-        style={{
-          position: "absolute",
-          bottom: 50,
-          alignSelf: "center",
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 24,
-          paddingVertical: 12,
-          borderRadius: 999,
-          backgroundColor: "#10b981",
-          shadowColor: "#000",
-          shadowOpacity: 0.15,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 5,
-        }}
-      >
-        <Text style={{ color: "#fff", fontSize: 20, marginRight: 8 }}>＋</Text>
-        <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
-          Post Request
-        </Text>
-      </Pressable>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
+
 
 export default function AppNavigator() {
   const [initializing, setInitializing] = useState(true);
@@ -557,6 +800,7 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator initialRouteName={user ? "Home" : "Auth"}>
       <Stack.Screen name="Chats" component={ChatsScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
       <Stack.Screen name="PostItem" component={PostItemScreen} />
       <Stack.Screen name="MyPosts" component={MyPostsScreen} />
